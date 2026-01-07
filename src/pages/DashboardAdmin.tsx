@@ -21,6 +21,8 @@ import { Auditoria_Logs } from "../components/Auditoria_Logs";
 import { Relatorios_Financeiros } from "../components/Relatorios_Financeiros";
 import { Agendamentos_Lista } from "../components/Agendamentos_Lista";
 import { Lista_Clientes } from "../components/Lista_Clientes";
+import { Popularidade_Servicos } from "../components/Popularidade_Servicos";
+import { Promocoes_Admin } from "../components/Promocoes_Admin";
 
 // =====================
 // TIPOS
@@ -45,9 +47,6 @@ interface Agendamento {
   status: "Confirmado" | "Pendente" | "Cancelado" | "Remarcado";
 }
 
-// =====================
-// DASHBOARD ADMIN
-// =====================
 export function DashboardAdmin() {
   // 1. ESTADOS DE NAVEGAÇÃO E MODAIS
   const [view, setView] = useState<
@@ -58,6 +57,8 @@ export function DashboardAdmin() {
     | "financeiro"
     | "todos-agendamentos"
     | "clientes"
+    | "popularidade_servicos"
+    | "promocoes"
   >("home");
 
   const [showServicoModal, setShowServicoModal] = useState(false);
@@ -142,41 +143,41 @@ export function DashboardAdmin() {
           </header>
 
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-10">
-  {/* Card de Faturamento -> Leva para o Financeiro */}
-  <StatCard
-    onClick={() => setView("financeiro")}
-    title="Faturamento Mensal"
-    value={`${stats.faturamento} CVE`}
-    icon={<DollarSign className="text-[#b5820e]" />}
-    color="bg-amber-50"
-  />
+            {/* Card de Faturamento -> Leva para o Financeiro */}
+            <StatCard
+              onClick={() => setView("financeiro")}
+              title="Faturamento Mensal"
+              value={`${stats.faturamento} CVE`}
+              icon={<DollarSign className="text-[#b5820e]" />}
+              color="bg-amber-50"
+            />
 
-  {/* Card de Clientes -> Leva para a Lista de Clientes */}
-  <StatCard
-    onClick={() => setView("clientes")}
-    title="Clientes Ativos"
-    value={stats.clientesAtivos}
-    icon={<Users className="text-blue-500" />}
-    color="bg-blue-50"
-  />
+            {/* Card de Clientes -> Leva para a Lista de Clientes */}
+            <StatCard
+              onClick={() => setView("clientes")}
+              title="Clientes Ativos"
+              value={stats.clientesAtivos}
+              icon={<Users className="text-blue-500" />}
+              color="bg-blue-50"
+            />
 
-  {/* Card de Serviços Hoje -> Leva para a Lista de Agendamentos */}
-  <StatCard
-    onClick={() => setView("todos-agendamentos")}
-    title="Serviços Hoje"
-    value={stats.servicosHoje}
-    icon={<Calendar className="text-purple-500" />}
-    color="bg-purple-50"
-  />
+            {/* Card de Serviços Hoje -> Leva para a Lista de Agendamentos */}
+            <StatCard
+              onClick={() => setView("todos-agendamentos")}
+              title="Serviços Hoje"
+              value={stats.servicosHoje}
+              icon={<Calendar className="text-purple-500" />}
+              color="bg-purple-50"
+            />
 
-  {/* Card de Popularidade -> (Sem clique ou leva para Serviços) */}
-  <StatCard
-    title="Popularidade"
-    value="Drenagem"
-    icon={<TrendingUp className="text-green-500" />}
-    color="bg-green-100"
-  />
-
+            {/* Card de Popularidade -> (Sem clique ou leva para Serviços) */}
+            <StatCard
+              onClick={() => setView("popularidade_servicos")}
+              title="Popularidade"
+              value="Drenagem"
+              icon={<TrendingUp className="text-green-500" />}
+              color="bg-green-100"
+            />
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
@@ -328,10 +329,59 @@ export function DashboardAdmin() {
                 Ver Auditoria
               </button>
             </div>
+            <div className="bg-white rounded-3xl shadow-sm border border-pink-50 p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl font-bold text-black">Promoções</h2>
+                <TrendingUp className="text-[#b5820e]" size={20} />
+              </div>
+
+              {/* Lista de promoções */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl">
+                  <div>
+                    <p className="text-sm font-bold text-black">
+                      Desconto Massagem
+                    </p>
+                    <p className="text-xs text-gray-400">-20% até 30/01</p>
+                  </div>
+                  <span className="text-xs font-bold text-green-600 bg-green-100 px-3 py-1 rounded-full">
+                    Ativa
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl">
+                  <div>
+                    <p className="text-sm font-bold text-black">
+                      Manicure & Pedicure
+                    </p>
+                    <p className="text-xs text-gray-400">Pack especial</p>
+                  </div>
+                  <span className="text-xs font-bold text-red-600 bg-red-100 px-3 py-1 rounded-full">
+                    Inativa
+                  </span>
+                </div>
+              </div>
+
+              {/* Botão admin */}
+              <button
+                onClick={() => setView("promocoes")}
+                className="w-full mt-6 py-3 bg-black text-[#b5820e] rounded-2xl font-bold text-sm flex items-center justify-center gap-2 hover:opacity-90 transition"
+              >
+                <Plus size={16} />
+                Criar / Gerir Promoções
+              </button>
+            </div>
           </div>
         </>
       )}
 
+      {view === "promocoes" && (
+        <Promocoes_Admin onVoltar={() => setView("home")} />
+      )}
+
+      {view === "popularidade_servicos" && (
+        <Popularidade_Servicos onVoltar={() => setView("home")} />
+      )}
       {/* RENDERIZAÇÃO: LISTA DE CLIENTES */}
       {view === "clientes" && (
         <Lista_Clientes onVoltar={() => setView("home")} />
@@ -389,20 +439,25 @@ export function DashboardAdmin() {
 
 function StatCard({ title, value, icon, color, onClick }: StatCardProps) {
   return (
-    <div 
+    <div
       onClick={onClick}
       className={`bg-white p-6 rounded-3xl shadow-sm border border-pink-50 transition-all duration-300 
-        ${onClick 
-          ? 'cursor-pointer hover:shadow-lg hover:-translate-y-1 active:scale-95' 
-          : 'cursor-default'
+        ${
+          onClick
+            ? "cursor-pointer hover:shadow-lg hover:-translate-y-1 active:scale-95"
+            : "cursor-default"
         }`}
     >
-      <div className={`w-12 h-12 ${color} rounded-2xl flex items-center justify-center mb-4 shadow-inner`}>
+      <div
+        className={`w-12 h-12 ${color} rounded-2xl flex items-center justify-center mb-4 shadow-inner`}
+      >
         {icon}
       </div>
-      <p className="text-sm text-gray-400 font-medium uppercase tracking-wider">{title}</p>
+      <p className="text-sm text-gray-400 font-medium uppercase tracking-wider">
+        {title}
+      </p>
       <p className="text-2xl font-bold text-gray-800 mt-1">{value}</p>
-      
+
       {/* Pequeno indicador visual se for clicável */}
       {onClick && (
         <p className="text-[9px] text-[#b5820e] font-bold mt-2 uppercase tracking-tighter opacity-0 group-hover:opacity-100 transition-opacity">
