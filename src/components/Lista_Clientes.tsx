@@ -11,9 +11,6 @@ import {
 
 import { Perfil_Cliente } from "./Perfil_Cliente";
 
-// =====================
-// TIPOS
-// =====================
 interface Cliente {
   id: number;
   nome: string;
@@ -24,11 +21,7 @@ interface Cliente {
   desde: string;
 }
 
-// =====================
-// COMPONENTE
-// =====================
 export function Lista_Clientes({ onVoltar }: { onVoltar: () => void }) {
-  // MOCK DE DADOS (depois ligas à API)
   const [clientes, setClientes] = useState<Cliente[]>([
     {
       id: 1,
@@ -63,24 +56,22 @@ export function Lista_Clientes({ onVoltar }: { onVoltar: () => void }) {
   const [clienteSelecionado, setClienteSelecionado] =
     useState<Cliente | null>(null);
 
-  // =====================
-  // FUNÇÕES
-  // =====================
   const toggleCliente = (id: number) => {
     setClientes((prev) =>
       prev.map((c) => (c.id === id ? { ...c, ativo: !c.ativo } : c))
     );
   };
 
-  const clientesFiltrados = clientes.filter(
-    (c) =>
-      c.nome.toLowerCase().includes(busca.toLowerCase()) ||
-      c.email.toLowerCase().includes(busca.toLowerCase())
-  );
+  const clientesFiltrados = clientes.filter((c) => {
+    const termo = busca.toLowerCase();
+    return (
+      c.nome.toLowerCase().includes(termo) ||
+      c.apelido.toLowerCase().includes(termo) ||
+      c.email.toLowerCase().includes(termo)
+    );
+  });
 
-  // =====================
-  // PERFIL CLIENTE
-  // =====================
+  /* PERFIL */
   if (clienteSelecionado) {
     return (
       <Perfil_Cliente
@@ -90,40 +81,49 @@ export function Lista_Clientes({ onVoltar }: { onVoltar: () => void }) {
     );
   }
 
-  // =====================
-  // LISTA CLIENTES
-  // =====================
+  /* LISTA */
   return (
-    <div className="bg-white rounded-[2.5rem] shadow-2xl border border-gray-50 overflow-hidden animate-in fade-in zoom-in duration-300">
+    <div className=" rounded-[2.5rem]  overflow-hidden animate-in fade-in zoom-in duration-300">
       {/* HEADER */}
       <div className="bg-black p-8 flex justify-between items-center">
         <div className="flex items-center gap-4">
           <button
             onClick={onVoltar}
-            className="p-2 hover:bg-white/10 rounded-full transition text-[#b5820e]"
+            className="p-2 rounded-full text-[#b5820e] hover:bg-gray-300 transition"
           >
-            <ChevronLeft size={24} />
+            <ChevronLeft size={22} />
           </button>
 
           <div>
-            <h2 className="text-2xl font-serif font-black text-white uppercase tracking-tighter">
+            <h2 className="text-2xl font-black text-white uppercase tracking-tight">
               Base de Clientes
             </h2>
             <p className="text-gray-400 text-[10px] uppercase tracking-[0.3em]">
-              Gestão de Utilizadores Maddie Boutique
+              Gestão de Utilizadores
             </p>
           </div>
         </div>
 
         <div className="relative hidden md:block">
-          <Search
-            className="absolute left-4 top-3 text-gray-500"
-            size={18}
-          />
+          <Search className="absolute left-4 top-3 text-gray-500" size={18} />
           <input
             type="text"
             placeholder="Pesquisar cliente..."
-            className="bg-gray-900 text-white rounded-xl py-3 pl-12 pr-4 border border-gray-800 focus:border-[#b5820e] outline-none text-sm w-64 transition"
+            className="
+              bg-gray-900
+              text-white
+              rounded-xl
+              py-3
+              pl-12
+              pr-4
+              border border-gray-800
+              focus:border-[#b5820e]
+              outline-none
+              text-sm
+              w-64
+              transition
+            "
+            value={busca}
             onChange={(e) => setBusca(e.target.value)}
           />
         </div>
@@ -136,11 +136,18 @@ export function Lista_Clientes({ onVoltar }: { onVoltar: () => void }) {
             <div
               key={cliente.id}
               onClick={() => setClienteSelecionado(cliente)}
-              className={`cursor-pointer p-6 rounded-[2rem] border transition-all duration-300 ${
-                cliente.ativo
-                  ? "bg-gray-50 border-transparent hover:border-[#b5820e]/30"
-                  : "bg-red-50/30 border-red-100 opacity-75"
-              }`}
+              className={`
+                p-6
+                rounded-[2rem]
+                border
+                cursor-pointer
+                transition-all
+                ${
+                  cliente.ativo
+                    ? "bg-gray-50 border-transparent hover:border-[#b5820e]"
+                    : "bg-red-50/40 border-red-100 opacity-80"
+                }
+              `}
             >
               <div className="flex justify-between items-start mb-4">
                 <div
@@ -169,28 +176,27 @@ export function Lista_Clientes({ onVoltar }: { onVoltar: () => void }) {
               </h3>
 
               <div className="mt-4 space-y-2">
-                <div className="flex items-center gap-2 text-gray-500 text-xs">
+                <div className="flex items-center gap-2 text-xs text-gray-500">
                   <Mail size={14} className="text-gray-300" />
                   {cliente.email}
                 </div>
-                <div className="flex items-center gap-2 text-gray-500 text-xs">
+                <div className="flex items-center gap-2 text-xs text-gray-500">
                   <Phone size={14} className="text-gray-300" />
                   {cliente.telefone}
                 </div>
-                <div className="flex items-center gap-2 text-gray-400 text-[10px] uppercase font-bold pt-2">
+                <div className="flex items-center gap-2 text-[10px] text-gray-400 uppercase font-bold pt-2">
                   <Calendar size={12} />
                   Desde{" "}
                   {new Date(cliente.desde).toLocaleDateString("pt-PT")}
                 </div>
               </div>
 
-              {/* BOTÃO ATIVAR / DESATIVAR */}
               <button
                 onClick={(e) => {
                   e.stopPropagation();
                   toggleCliente(cliente.id);
                 }}
-                className={`w-full mt-6 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest transition-all flex items-center justify-center gap-2 ${
+                className={`w-full mt-6 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-2 transition ${
                   cliente.ativo
                     ? "bg-white border border-red-100 text-red-500 hover:bg-red-50"
                     : "bg-[#b5820e] text-white hover:opacity-90"

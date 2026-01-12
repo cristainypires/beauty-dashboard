@@ -3,36 +3,50 @@ import { User } from "lucide-react";
 
 export function Header() {
   return (
-    <header className="bg-white border-b border-[#b5820ecc] py-4 px-6 md:px-12 flex justify-between items-center shadow-sm">
-      <div className="flex items-center">
-        <div className="w-40">
-          <img src="logoo.png" alt="Maddie Logo" className="w-full h-auto" />
-        </div>
-         <div className="h-10 w-[1px] bg-gray-200 mx-6 hidden md:block"></div>
+    <header className="bg-white border-b border-[#b5820ecc] shadow-sm">
+      <div className="py-4 px-4 sm:px-6 md:px-12 flex flex-col md:flex-row md:justify-between md:items-center gap-4">
+        {/* ===== ESQUERDA: LOGO + NEGÓCIO ===== */}
+        <div className="flex flex-col sm:flex-row items-center gap-4">
+          {/* Logo */}
+          <div className="w-32 sm:w-40 flex-shrink-0">
+            <img src="logoo.png" alt="Maddie Logo" className="w-full h-auto" />
+          </div>
 
-        <div className="flex flex-col justify-center">
-          <h1 className="text-2xl font-semibold  text-[#5D2E46]">
-            Maddie Tavares
-          </h1>
-          <span className="text-[10px] text-[#b5820e] font-bold tracking-[0.4em] uppercase mt-1">
-            Beauty Boutique
-          </span>
-        </div>
-      </div>
+          {/* Separador (só desktop) */}
+          <div className="h-10 w-[1px] bg-gray-200 hidden md:block"></div>
 
-      <div className="flex items-center gap-4 border-l pl-6 border-gray-200">
-        <div className="text-lg font-semibold  text-[#5D2E46]">
-          <p className="text-sm ">Maddie Tavares</p>
-          <p className="text-[20px] text-[#b5820e] ">Administradora Geral</p>
+          {/* Nome + Boutique */}
+          <div className="hidden sm:block">
+            <div className="flex flex-col items-center sm:items-start text-center sm:text-left">
+              <h1 className="text-xl sm:text-2xl font-semibold text-[#5D2E46]">
+                Maddie Tavares
+              </h1>
+              <span className="text-[10px] text-[#b5820e] font-bold tracking-[0.4em] uppercase mt-1">
+                Beauty Boutique
+              </span>
+            </div>
+          </div>
         </div>
 
-        {/* Avatar com Borda Gold */}
-        <div className="w-14 h-14 md:w-16 md:h-16 rounded-full flex items-center justify-center shadow-lg overflow-hidden">
-          <img
-            src="maddie.jpg"
-            alt="Avatar Maddie Tavares"
-            className="w-full h-full rounded-md object-cover"
-          />
+        {/* ===== DIREITA: ADMIN ===== */}
+        <div className="flex flex-col sm:flex-row items-center gap-4 border-t sm:border-t-0 sm:border-l  sm:pt-0 sm:pl-6 border-gray-200">
+          <div className="text-center sm:text-left">
+            <p className="text-sm font-semibold text-[#5D2E46]">
+              Maddie Tavares
+            </p>
+            <p className="text-base sm:text-[20px] text-[#b5820e] font-semibold">
+              Administradora Geral
+            </p>
+          </div>
+
+          {/* Avatar */}
+          <div className="w-12 h-12 md:w-16 md:h-16 rounded-full shadow-lg overflow-hidden">
+            <img
+              src="maddie.jpg"
+              alt="Avatar Maddie Tavares"
+              className="w-full h-full object-cover"
+            />
+          </div>
         </div>
       </div>
     </header>

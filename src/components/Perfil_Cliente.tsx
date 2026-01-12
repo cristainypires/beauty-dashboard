@@ -2,7 +2,7 @@ import { ChevronLeft, Calendar, Scissors } from "lucide-react";
 
 export function Perfil_Cliente({ cliente, onVoltar }: any) {
   return (
-    <div className="bg-white rounded-3xl shadow-xl p-8 border border-gray-100">
+    <div className=" rounded-3xl  p-8 ">
       <button onClick={onVoltar} className="text-[#b5820e] mb-6 flex items-center gap-2">
         <ChevronLeft /> Voltar
       </button>

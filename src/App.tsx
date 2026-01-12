@@ -6,18 +6,14 @@ import { DashboardFuncionario } from './pages/DashboardFuncionario';
 
 function App() {
   return (
-    <div className="">
+    <div className="min-h-screen flex flex-col bg-white">
   
       <Header />
 
-     
-      <main className="flex-grow container mx-auto px-4 py-8">
+          <div className="container mx-auto px-4 py-4">
+        <DashboardAdmin/>
         <DashboardFuncionario/>
-
-
-      </main>
-
-    
+      </div>
       <Footer />
     </div>
   );
