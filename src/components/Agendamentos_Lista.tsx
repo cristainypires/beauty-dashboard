@@ -2,49 +2,22 @@
 import React, { useState } from "react";
 import { Search, Calendar, ChevronLeft } from "lucide-react";
 import { Agenda_Item } from "./Agenda_Item";
+import { Agendamento } from "../pages/DashboardAdmin"; // importa a interface
 
-export function Agendamentos_Lista({ onVoltar }: { onVoltar: () => void }) {
+  interface AgendamentosListaProps {
+  agendamentos: Agendamento[];
+  onVoltar: () => void;
+  onCancelar: (id: number) => Promise<void>;
+  onReagendar: (id: number) => Promise<void>;
+}
+export function Agendamentos_Lista({
+  agendamentos,
+  onVoltar,
+  onCancelar,
+  onReagendar,
+}: AgendamentosListaProps) {
   const [dataFiltro, setDataFiltro] = useState("");
   const [pesquisa, setPesquisa] = useState("");
-
-  const agendamentos = [
-    {
-      id: 452,
-      cliente: "Rosa Mendes",
-      telefone: "987654321",
-      servico: "Drenagem",
-      data: "2023-10-27",
-      hora: "08:00",
-      status: "Confirmado",
-    },
-    {
-      id: 451,
-      cliente: "Bia Costa",
-      telefone: "912345678",
-      servico: "Limpeza de Pele",
-      data: "2023-10-27",
-      hora: "09:30",
-      status: "Pendente",
-    },
-    {
-      id: 450,
-      cliente: "Sílvia Lopes",
-      telefone: "934567890",
-      servico: "Manicure",
-      data: "2023-10-26",
-      hora: "11:00",
-      status: "Cancelado",
-    },
-    {
-      id: 449,
-      cliente: "Marta Tavares",
-      telefone: "956789012",
-      servico: "Massagem",
-      data: "2023-10-26",
-      hora: "14:00",
-      status: "Remarcado",
-    },
-  ] as const;
 
   const agendamentosFiltrados = agendamentos.filter((ag) => {
     const matchData = dataFiltro ? ag.data === dataFiltro : true;
@@ -104,24 +77,25 @@ export function Agendamentos_Lista({ onVoltar }: { onVoltar: () => void }) {
       </div>
 
       {/* LISTA DE CARDS */}
-      <div className="p-3 sm:p-6 flex flex-col gap-4">
-        {agendamentosFiltrados.map((ag) => (
+      <div className="space-y-2">
+        {agendamentos.map((item) => (
           <Agenda_Item
-            key={ag.id}
-            id={ag.id}
-            cliente={ag.cliente}
-            telefone={ag.telefone}
-            servico={ag.servico}
-            data={ag.data}
-            hora={ag.hora}
-            status={ag.status}
-            clickable
-            onItemClick={() => console.log("Abrir", ag.id)}
-            onClienteClick={() => console.log("Cliente", ag.cliente)}
-            onRemarcar={() => console.log("Remarcar", ag.id)}
-            onCancelar={() => console.log("Cancelar", ag.id)}
+            key={item.id}
+            id={item.id}
+            cliente={item.cliente}
+            telefone={item.telefone || ""}
+            servico={`${item.servico} • ${item.profissional}`}
+            data={item.data}
+            hora={item.hora}
+            status={item.status}
+            clickable={true}
+            onItemClick={() => {}}
+            onClienteClick={() => {}}
+            onCancelar={() => onCancelar(item.id)}
+            onRemarcar={() => onReagendar(item.id)}
           />
         ))}
+      
 
         {agendamentosFiltrados.length === 0 && (
           <p className="text-center text-sm text-gray-400 py-8">

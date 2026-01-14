@@ -11,6 +11,9 @@ import {
   ChevronRight,
 } from "lucide-react";
 
+// Importamos o serviço
+import { FuncionarioService } from "../services/Funcionario.service";
+
 /* ================== TIPOS ================== */
 interface DiaSemana {
   dia: string;
@@ -31,20 +34,12 @@ interface Ferias {
 }
 
 export function Gestao_Disponibilidade() {
-  /* ===== ABA ATIVA ===== */
   type AbaAtiva = "rotina" | "ferias" | "bloqueio";
-
   const [activeTab, setActiveTab] = useState<AbaAtiva>("rotina");
 
-  const removerFerias = (id: number) => {
-    if (window.confirm("Deseja remover este período de férias?")) {
-      setFerias((prev) => prev.filter((f) => f.id !== id));
-    }
-  };
-
-  /* ===== ESTADO: HORÁRIO SEMANAL ===== */
+  /* ===== 1. JORNADA SEMANAL (DISPONIBILIDADE) ===== */
   const [semana, setSemana] = useState<DiaSemana[]>(
-    ["Segunda-feria", "Terça-feria", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado", "Domingo"].map(
+    ["Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado", "Domingo"].map(
       (dia) => ({
         dia,
         ativo: !["Sábado", "Domingo"].includes(dia),
@@ -58,36 +53,86 @@ export function Gestao_Disponibilidade() {
     )
   );
 
-  const atualizarDia = (
-    index: number,
-    campo: keyof DiaSemana,
-    valor: string | boolean
-  ) => {
-    setSemana((prev) =>
-      prev.map((d, i) => (i === index ? { ...d, [campo]: valor } : d))
-    );
+  const atualizarDia = (index: number, campo: keyof DiaSemana, valor: string | boolean) => {
+    setSemana((prev) => prev.map((d, i) => (i === index ? { ...d, [campo]: valor } : d)));
   };
 
-  /* ===== ESTADO: FÉRIAS ===== */
+  // LIGAÇÃO BACK-END: Enviar horários semanais
+  const handleGuardarAgenda = async () => {
+    try {
+      // router.post("/disponibilidade", ...)
+      await FuncionarioService.marcarDisponibilidade({ semana });
+      alert("Agenda semanal guardada com sucesso! ✅");
+    } catch (error) {
+      alert("Erro ao guardar agenda.");
+    }
+  };
+
+  // ... outros estados anteriores (semana, ferias, etc)
+
+/* ===== FUNÇÃO PARA REMOVER FÉRIAS ===== */
+const removerFerias = async (id: number) => {
+  if (window.confirm("Deseja remover este período de férias?")) {
+    try {
+      // 1. Opcional: Se você tiver uma rota no back-end para deletar férias, chame-a aqui
+      // await FuncionarioService.removerFerias(id); 
+
+      // 2. Remove do estado local para a lista atualizar na tela
+      setFerias((prev) => prev.filter((f) => f.id !== id));
+      
+    } catch (error) {
+      console.error("Erro ao remover férias:", error);
+      alert("Não foi possível remover o período de férias.");
+    }
+  }
+};
+
+// ... aqui começa o return (JSX)
+
+  /* ===== 2. FÉRIAS ===== */
   const [ferias, setFerias] = useState<Ferias[]>([]);
   const [inicioFerias, setInicioFerias] = useState("");
   const [fimFerias, setFimFerias] = useState("");
   const [obsFerias, setObsFerias] = useState("");
 
-  const salvarFerias = () => {
+  // LIGAÇÃO BACK-END: Marcar Férias
+  const handleSalvarFerias = async () => {
     if (!inicioFerias || !fimFerias) return alert("Preencha as datas.");
-    setFerias([
-      ...ferias,
-      { id: Date.now(), inicio: inicioFerias, fim: fimFerias, obs: obsFerias },
-    ]);
-    setInicioFerias("");
-    setFimFerias("");
-    setObsFerias("");
+    
+    try {
+      // router.post("/ferias", ...)
+      const novaFeria = { data_inicio: inicioFerias, data_fim: fimFerias, obs: obsFerias };
+      await FuncionarioService.marcarFerias(novaFeria);
+      
+      setFerias([...ferias, { id: Date.now(), inicio: inicioFerias, fim: fimFerias, obs: obsFerias }]);
+      setInicioFerias(""); setFimFerias(""); setObsFerias("");
+      alert("Período de descanso registado! 🌴");
+    } catch (error) {
+      alert("Erro ao marcar férias.");
+    }
   };
 
-  /* ===== ESTADO: BLOQUEIO EMERGÊNCIA ===== */
+  /* ===== 3. BLOQUEIO DE EMERGÊNCIA ===== */
   const [bloqueioData, setBloqueioData] = useState("");
   const [bloqueioHora, setBloqueioHora] = useState("");
+
+  // LIGAÇÃO BACK-END: Bloquear Horário
+  const handleBloquearAgora = async () => {
+    if (!bloqueioData || !bloqueioHora) return alert("Selecione data e hora.");
+
+    try {
+      // router.post("/bloquear-horario", ...)
+      await FuncionarioService.bloquearHorario({
+        data: bloqueioData,
+        hora: bloqueioHora,
+        motivo: "Bloqueio de emergência pelo funcionário"
+      });
+      alert("Horário bloqueado com sucesso! 🚫");
+      setBloqueioData(""); setBloqueioHora("");
+    } catch (error) {
+      alert("Erro ao bloquear horário.");
+    }
+  };
 
   return (
     <div className="space-y-10 animate-in fade-in duration-500  sm:px-6 md:px-12">
@@ -268,7 +313,7 @@ export function Gestao_Disponibilidade() {
               </div>
             ))}
             <div className="flex justify-end items-end mb-8">
-              <button className="bg-black text-[#b5820e] px-6 sm:px-8 py-3 sm:py-3.5 rounded-2xl font-black uppercase text-xs sm:text-sm tracking-widest flex items-center gap-2 shadow-lg">
+              <button onClick={handleGuardarAgenda} className="bg-black text-[#b5820e] px-6 sm:px-8 py-3 sm:py-3.5 rounded-2xl font-black uppercase text-xs sm:text-sm tracking-widest flex items-center gap-2 shadow-lg">
                 <Save size={18} /> Guardar Agenda
               </button>
             </div>
@@ -323,7 +368,7 @@ export function Gestao_Disponibilidade() {
                 />
 
                 <button
-                  onClick={salvarFerias}
+                  onClick={handleSalvarFerias}
                   className="w-full bg-[#b5820e] text-black py-4 sm:py-5 rounded-2xl font-black uppercase text-xs sm:text-sm tracking-[0.3em] hover:bg-white transition-all shadow-xl"
                 >
                   Confirmar Período de Férias
@@ -403,7 +448,7 @@ export function Gestao_Disponibilidade() {
                 className="flex-1 p-3 sm:p-4 bg-white/10 border border-white/10 rounded-2xl outline-none focus:border-red-500"
               />
               <button
-                onClick={() => alert("Agenda Bloqueada!")}
+                onClick={handleBloquearAgora}
                 className="bg-red-600 text-white px-6 sm:px-10 py-3 sm:py-4 rounded-2xl font-black uppercase text-xs sm:text-sm tracking-widest hover:bg-red-700 transition"
               >
                 Bloquear Agora

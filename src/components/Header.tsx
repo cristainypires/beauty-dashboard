@@ -18,7 +18,7 @@ export function Header() {
           {/* Nome + Boutique */}
           <div className="hidden sm:block">
             <div className="flex flex-col items-center sm:items-start text-center sm:text-left">
-              <h1 className="text-xl sm:text-2xl font-semibold text-[#5D2E46]">
+              <h1 className="text-xl sm:text-2xl font-semibold text-black">
                 Maddie Tavares
               </h1>
               <span className="text-[10px] text-[#b5820e] font-bold tracking-[0.4em] uppercase mt-1">
@@ -31,7 +31,7 @@ export function Header() {
         {/* ===== DIREITA: ADMIN ===== */}
         <div className="flex flex-col sm:flex-row items-center gap-4 border-t sm:border-t-0 sm:border-l  sm:pt-0 sm:pl-6 border-gray-200">
           <div className="text-center sm:text-left">
-            <p className="text-sm font-semibold text-[#5D2E46]">
+            <p className="text-sm font-semibold text-black">
               Maddie Tavares
             </p>
             <p className="text-base sm:text-[20px] text-[#b5820e] font-semibold">

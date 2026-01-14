@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Calendar,
   Clock,
@@ -9,11 +9,14 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
+import { FuncionarioService } from "../services/Funcionario.service";
+
 // Imports de Componentes
 import { Agenda_Item } from "../components/Agenda_Item";
 import { Gestao_Disponibilidade } from "../components/Gestao_Disponibilidade";
 import { Form_Agendamento_Funcionario } from "../components/Form_Agendamento_Funcionario";
 import { Lista_Clientes } from "../components/Lista_Clientes";
+import { Cliente } from "../components/Lista_Clientes";
 
 // =====================
 // DASHBOARD FUNCIONÁRIO
@@ -28,57 +31,13 @@ export function DashboardFuncionario() {
     | "Lista_clientes"
   >("home");
 
-  const [agenda] = useState<
-    {
-      id: number;
-      cliente: string;
-      telefone: string; // 👈 NOVO
-      servico: string;
-      hora: string;
-      data: string;
-      status: "Confirmado" | "Pendente" | "Cancelado" | "Remarcado";
-      obs?: string;
-    }[]
-  >([
-    {
-      id: 1,
-      cliente: "Marta Tavares",
-      telefone: "991 22 33",
-      servico: "Limpeza de Pele",
-      data: "2026-01-10",
-      hora: "17:00",
-      status: "Confirmado",
-      obs: "Gosto de musica na secç.",
-    },
-    {
-      id: 2,
-      cliente: "Carla Antunes",
-      telefone: "985 44 11",
-      servico: "Massagem",
-      data: "2027-01-10",
-      hora: "23:00",
-      status: "Cancelado",
-    },
-    {
-      id: 3,
-      cliente: "João Pedro",
-      telefone: "994 88 66",
-      servico: "Sobracelhas",
-      hora: "14:00",
-      data: "2026-10-08",
-      status: "Pendente",
-    },
-    {
-      id: 4,
-      cliente: "Ana Silva",
-      telefone: "997 55 22",
-      servico: "Corte de Cabelo",
-      hora: "15:30",
-      data: "2025-01-08",
-      status: "Remarcado",
-      obs: "Prefere corte curto.",
-    },
-  ]);
+  // 3. Substitua a agenda estática por este estado:
+  const [agenda, setAgenda] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Estado para os clientes (também virá do banco)
+  const [clientes, setClientes] = useState<Cliente[]>([]);
+
   const navigate = useNavigate();
   const [filtroCliente, setFiltroCliente] = useState("");
   const [filtroServico, setFiltroServico] = useState("");
@@ -86,6 +45,107 @@ export function DashboardFuncionario() {
     "Confirmado" | "Pendente" | "Cancelado" | "Remarcado" | ""
   >("");
   const [filtroData, setFiltroData] = useState("");
+
+  const handleAtivarCliente = (id: number) => {
+    setClientes((prev) =>
+      prev.map((c) => (c.id === id ? { ...c, ativo: true } : c))
+    );
+  };
+
+  const handleDesativarCliente = (id: number) => {
+    setClientes((prev) =>
+      prev.map((c) => (c.id === id ? { ...c, ativo: false } : c))
+    );
+  };
+
+  // Dentro do DashboardFuncionario
+  const carregarDados = async () => {
+    try {
+      setLoading(true);
+      let dados;
+
+      if (view === "historico") {
+        // Chama router.get("/historico", ...) do back-end
+        dados = await FuncionarioService.verMeuHistorico();
+      } else {
+        // Chama router.get("/listar-agendamentos", ...) do back-end
+        dados = await FuncionarioService.listarMinhaAgenda();
+      }
+
+      setAgenda(dados); // Atualiza o estado com os dados do banco
+    } catch (error) {
+      console.error("Erro ao carregar dados:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Carregar sempre que mudar a view
+  useEffect(() => {
+    carregarDados();
+  }, [view]);
+
+  // --- AÇÕES LIGADAS AO BACK-END ---
+
+  const handleConcluir = async (id: number) => {
+    try {
+      await FuncionarioService.concluirServico(id);
+      alert("Serviço concluído com sucesso! 🎉");
+      carregarDados(); // Recarrega a lista
+    } catch (error) {
+      alert("Erro ao concluir serviço.");
+    }
+  };
+
+  const handleCancelar = async (id: number) => {
+    if (window.confirm("Tem certeza que deseja cancelar este agendamento?")) {
+      try {
+        await FuncionarioService.cancelarAgendamento(id);
+        alert("Agendamento cancelado.");
+        carregarDados();
+      } catch (error) {
+        alert("Erro ao cancelar.");
+      }
+    }
+  };
+
+  const handleReagendar = async (id: number) => {
+    const novaData = prompt("Nova Data (AAAA-MM-DD):");
+    const novaHora = prompt("Nova Hora (HH:MM):");
+    if (novaData && novaHora) {
+      try {
+        await FuncionarioService.reagendarAgendamento(id, {
+          data: novaData,
+          hora: novaHora,
+        });
+        alert("Reagendado com sucesso!");
+        carregarDados();
+      } catch (error) {
+        alert("Erro ao reagendar. Verifique a disponibilidade.");
+      }
+    }
+  };
+
+
+  const handleCriarAgendamento = async (dadosDoForm: any) => {
+  try {
+    // 1. Chama o serviço que criamos no ficheiro Funcionario.service.ts
+    // Rota: router.post("/agendamentos", agendamento_Controller.fazer_agendamento);
+    await FuncionarioService.fazerNovoAgendamento(dadosDoForm);
+    
+    alert("Agendamento registado com sucesso! 🎉");
+    
+    // 2. Volta para a Home
+    setView("home");
+    
+    // 3. Recarrega a agenda para o novo agendamento aparecer na lista
+    carregarDados(); 
+    
+  } catch (error) {
+    console.error("Erro ao criar agendamento:", error);
+    alert("Erro ao criar agendamento. Verifique se o horário está disponível.");
+  }
+};
 
   const hoje = new Date();
 
@@ -128,12 +188,14 @@ export function DashboardFuncionario() {
   const [filtroStatusHist, setFiltroStatusHist] = useState<
     "Confirmado" | "Pendente" | "Cancelado" | "Remarcado" | ""
   >("");
-  const ordenarPorDataHora = (a: { data: string; hora: string }, b: { data: string; hora: string }) => {
+  const ordenarPorDataHora = (
+    a: { data: string; hora: string },
+    b: { data: string; hora: string }
+  ) => {
     const dataHoraA = new Date(`${a.data}T${a.hora}`);
     const dataHoraB = new Date(`${b.data}T${b.hora}`);
     return dataHoraA.getTime() - dataHoraB.getTime();
   };
-  
 
   return (
     <div className="min-h-screen bg-white p-6 md:p-10">
@@ -165,7 +227,7 @@ export function DashboardFuncionario() {
           ].includes(view) && (
             <>
               <h1 className="md:text-4xl text-2xl font-serif font-black tracking-tight text-black">
-                Painel do Funcionário
+                Painel da Recepcionista
               </h1>
               <p className="text-gray-400 italic mt-2 text-lg">
                 "Excelência em cada detalhe, beleza em cada toque. Você é capaz,
@@ -203,7 +265,7 @@ export function DashboardFuncionario() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-7 mb-12">
             <StatCard
               title="Próximos Agendamentos"
-              value={proximosAgendamentos.length}
+              value={loading ? "..." : agenda.length} // Mostra o total real do banco
               icon={Clock}
               color="bg-amber-50"
               onClick={() => setView("agenda")}
@@ -221,7 +283,7 @@ export function DashboardFuncionario() {
               value="Ver"
               icon={History}
               color="bg-gray-50"
-              onClick={() => setView("historico")}
+              onClick={() => setView("agenda")}
             />
             <StatCard
               title="Avaliação"
@@ -247,7 +309,8 @@ export function DashboardFuncionario() {
               </div>
 
               <div className="space-y-4">
-                {agendaPaginada .sort(ordenarPorDataHora).map((item) => (
+                {/* Dentro do map da Agenda */}
+                {agendaPaginada.map((item) => (
                   <Agenda_Item
                     key={item.id}
                     id={item.id}
@@ -258,10 +321,10 @@ export function DashboardFuncionario() {
                     hora={item.hora}
                     status={item.status}
                     obs={item.obs}
-                    onItemClick={() => navigate(`/agenda`)}
-                    onClienteClick={() => navigate(`/Lista_Clientes`)}
-                    onRemarcar={() => alert("Remarcar")}
-                    onCancelar={() => alert("Cancelar")}
+                    onItemClick={() => handleConcluir(item.id)} // Clique no card conclui o serviço
+                    onClienteClick={() => setView("Lista_clientes")}
+                    onRemarcar={() => handleReagendar(item.id)}
+                    onCancelar={() => handleCancelar(item.id)}
                   />
                 ))}
 
@@ -295,11 +358,11 @@ export function DashboardFuncionario() {
               <div className="bg-black rounded-[2.5rem] p-10 md:mb-30 text-white shadow-2xl relative overflow-hidden">
                 <div className="bg-black/10 flex gap-5 group-hover/btn:bg-black/5 p-1 rounded-lg transition-colors md:mb-2">
                   <Calendar size={27} />
-                
-                <h3 className="text-xl font-bold text-[#b5820e] mb-4 uppercase tracking-widest">
-                  <span className="text-white"> Configurar</span> <br /> Minha
-                  Agenda
-                </h3>
+
+                  <h3 className="text-xl font-bold text-[#b5820e] mb-4 uppercase tracking-widest">
+                    <span className="text-white"> Configurar</span> <br /> Minha
+                    Agenda
+                  </h3>
                 </div>
                 <p className="text-gray-400 text-xs mb-8 leading-relaxed">
                   Gerencie sua disponibilidade diária, mensal e anual para o
@@ -319,7 +382,12 @@ export function DashboardFuncionario() {
         </>
       )}
       {view === "Lista_clientes" && (
-        <Lista_Clientes onVoltar={() => setView("home")} />
+        <Lista_Clientes
+          clientes={clientes}
+          onVoltar={() => setView("home")}
+          onAtivar={handleAtivarCliente}
+          onDesativar={handleDesativarCliente}
+        />
       )}
 
       {/* RENDERIZAÇÃO: OUTRAS TELAS */}
@@ -347,9 +415,9 @@ export function DashboardFuncionario() {
             />
             <select
               className="p-3 rounded-xl border border-gray-200 focus:border-[#b5820e] outline-none"
-              value={filtroStatus}
+              value={filtroStatusHist}
               onChange={(e) =>
-                setFiltroStatus(
+                setFiltroStatusHist(
                   e.target.value as
                     | "Confirmado"
                     | "Pendente"
@@ -390,6 +458,7 @@ export function DashboardFuncionario() {
             })
             .map((item) => (
               <Agenda_Item
+                key={item.id}
                 id={item.id}
                 cliente={item.cliente}
                 telefone={item.telefone}
@@ -398,10 +467,10 @@ export function DashboardFuncionario() {
                 hora={item.hora}
                 status={item.status}
                 obs={item.obs}
-                onItemClick={() => navigate(`/agenda`)}
-                onClienteClick={() => navigate(`/Lista_Clientes`)}
-                onRemarcar={() => alert("Remarcar")}
-                onCancelar={() => alert("Cancelar")}
+                onItemClick={() => handleConcluir(item.id)} // Clique no card conclui o serviço
+                onClienteClick={() => setView("Lista_clientes")}
+                onRemarcar={() => handleReagendar(item.id)}
+                onCancelar={() => handleCancelar(item.id)}
               />
             ))}
         </div>
@@ -410,8 +479,12 @@ export function DashboardFuncionario() {
       {view === "disponibilidade" && <Gestao_Disponibilidade />}
 
       {view === "novo" && (
-        <Form_Agendamento_Funcionario onVoltar={() => setView("home")} />
-      )}
+  <Form_Agendamento_Funcionario 
+    onVoltar={() => setView("home")} 
+    // Passamos a nossa função handleCriarAgendamento para ser usada no submit do form
+    onSubmit={handleCriarAgendamento} 
+  />
+)}
 
       {view === "historico" && (
         <div className="space-y-6">

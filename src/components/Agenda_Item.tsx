@@ -8,7 +8,7 @@ export interface AgendaItemProps {
   servico: string;
   data: string;
   hora: string;
-  status: "Confirmado" | "Pendente" | "Cancelado" | "Remarcado";
+  status: "Confirmado" | "Pendente" | "Cancelado" | "Remarcado" | "Concluído";
   obs?: string;
   clickable?: boolean;
   onClienteClick: () => void;
@@ -29,8 +29,11 @@ function statusClass(status: AgendaItemProps["status"]) {
       return "bg-red-100 text-red-700";
     case "Remarcado":
       return "bg-blue-100 text-blue-700";
+    case "Concluído":
+      return "bg-purple-100 text-purple-700";
     default:
       return "bg-gray-100 text-gray-700";
+
   }
 }
 

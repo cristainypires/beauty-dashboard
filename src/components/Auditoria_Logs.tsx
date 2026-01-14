@@ -8,27 +8,14 @@ import {
   ChevronLeft,
   Download,
 } from "lucide-react";
+import { LogEntry } from "../services/Auditoria.service";
 
-interface LogEntry {
-  id: number;
-  data: string;
-  hora: string;
-  ator: "ADMIN" | "SISTEMA" | "CLIENTE" | "FUNCIONÁRIO";
-  descricao: string;
-  detalhes: string;
+interface AuditoriaLogsProps {
+  logs: LogEntry[];
+  onVoltar: () => void;
 }
-
 const LOGS_POR_PAGINA = 5;
-
-export function Auditoria_Logs({ onVoltar }: { onVoltar: () => void }) {
-  const [logs] = useState<LogEntry[]>([
-    { id: 1, data: "2023-10-25", hora: "14:30", ator: "ADMIN", descricao: "Criou novo serviço", detalhes: "Serviço: Limpeza Facial VIP" },
-    { id: 2, data: "2023-10-25", hora: "13:12", ator: "CLIENTE", descricao: "Cancelou agendamento", detalhes: "Agendamento #450" },
-    { id: 3, data: "2023-10-25", hora: "10:05", ator: "SISTEMA", descricao: "Pagamento confirmado", detalhes: "SISP: Ref 99283-A" },
-    { id: 4, data: "2023-10-24", hora: "18:45", ator: "FUNCIONÁRIO", descricao: "Concluiu serviço", detalhes: "Ana → Marta" },
-    { id: 5, data: "2023-10-24", hora: "08:00", ator: "SISTEMA", descricao: "Lembretes enviados", detalhes: "24 WhatsApp" },
-  ]);
-
+export function Auditoria_Logs({ logs, onVoltar }: AuditoriaLogsProps) {
   /* ====== FILTROS ====== */
   const [pesquisa, setPesquisa] = useState("");
   const [ator, setAtor] = useState("TODOS");
@@ -57,11 +44,13 @@ export function Auditoria_Logs({ onVoltar }: { onVoltar: () => void }) {
 
   return (
     <div className=" rounded-[2.5rem] overflow-hidden">
-
       {/* HEADER */}
       <div className=" p-6 sm:p-8 flex flex-col sm:flex-row justify-between gap-6">
         <div className="flex items-center gap-4">
-          <button onClick={onVoltar} className="p-2 hover:bg-white/10 rounded-full text-[#b5820e]">
+          <button
+            onClick={onVoltar}
+            className="p-2 hover:bg-white/10 rounded-full text-[#b5820e]"
+          >
             <ChevronLeft size={24} />
           </button>
           <div>
@@ -73,10 +62,6 @@ export function Auditoria_Logs({ onVoltar }: { onVoltar: () => void }) {
             </p>
           </div>
         </div>
-
-        <button className="w-full sm:w-auto bg-[#b5820e] text-black px-6 py-3 rounded-xl font-black uppercase text-xs flex items-center justify-center gap-2">
-          <Download size={16} /> Exportar CSV
-        </button>
       </div>
 
       {/* FILTROS */}
@@ -132,7 +117,9 @@ export function Auditoria_Logs({ onVoltar }: { onVoltar: () => void }) {
           >
             <div className="min-w-[80px] text-center sm:text-left">
               <p className="text-[10px] text-gray-400">{log.data}</p>
-              <p className="text-sm font-mono font-bold text-[#b5820e]">{log.hora}</p>
+              <p className="text-sm font-mono font-bold text-[#b5820e]">
+                {log.hora}
+              </p>
             </div>
 
             <div className="flex-1">

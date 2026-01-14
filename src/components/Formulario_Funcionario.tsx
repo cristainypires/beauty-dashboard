@@ -27,8 +27,13 @@ interface Funcionario {
 
 interface Props {
   onVoltar: () => void;
+  onSalvar?: (dados: Funcionario) => Promise<void>;
   funcionarioParaEditar?: Funcionario;
 }
+
+// dentro do handleSubmit
+
+
 
 export function Formulario_Funcionario({
   onVoltar,
@@ -272,15 +277,15 @@ export function Formulario_Funcionario({
         </div>
 
         {/* SUBMIT */}
-        
-      </form>
-      <button
+        <button
           type="submit"
           className="w-full bg-black text-[#b5820e] py-5 rounded-2xl font-black uppercase tracking-widest flex justify-center items-center gap-3 hover:opacity-90"
         >
           <Save size={20} />
           {modoEdicao ? "Guardar Alterações" : "Criar Funcionário"}
         </button>
+      </form>
+      
     </div>
   );
 }

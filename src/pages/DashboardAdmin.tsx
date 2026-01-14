@@ -1,5 +1,25 @@
 // src/pages/DashboardAdmin.tsx
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+
+import {
+  listarAgendamentos,
+  cancelarAgendamento,
+  reagendarAgendamento,
+  listarClientes,
+  ativarCliente,
+  desativarCliente,
+  listarFuncionarios,
+  atualizarFuncionario,
+  removerFuncionario,
+  criarFuncionario,
+  listarServicos,
+  criarServico,
+  atualizarServico,
+  PromocaoService,
+} from "../services/Admin.service";
+
+import { AuditoriaService, LogEntry } from "../services/Auditoria.service";
+
 import {
   DollarSign,
   Users,
@@ -50,7 +70,7 @@ interface Funcionario {
   status: "Ativo" | "Inativo";
 }
 
-interface Agendamento {
+export interface Agendamento {
   id: number;
   cliente: string;
   servico: string;
@@ -61,7 +81,78 @@ interface Agendamento {
   status: "Confirmado" | "Pendente" | "Cancelado" | "Remarcado";
 }
 
+interface Servico {
+  id: number;
+  nome: string;
+  duracao: number;
+  preco: number;
+  ativo: boolean;
+}
+
+export interface Promocao {
+  id: number;
+  titulo: string;
+  validade: string;
+  servicos_ids: number[];
+  ativo: boolean;
+}
+
 export function DashboardAdmin() {
+  const [agendamentos, setAgendamentos] = useState<Agendamento[]>([]);
+  const [servicos, setServicos] = useState<Servico[]>([]);
+  const [logsAuditoria, setLogsAuditoria] = useState<LogEntry[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // 2. Função para carregar agendamentos do Back-end
+  const carregarAgendamentos = async () => {
+    try {
+      setLoading(true);
+      const dados = await listarAgendamentos();
+      setAgendamentos(dados);
+    } catch (error) {
+      console.error("Erro ao buscar agendamentos:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 3. Carregar assim que o componente montar
+  useEffect(() => {
+    carregarAgendamentos();
+    carregarClientes();
+    carregarFuncionarios();
+    carregarServicos();
+  }, []);
+
+  // 4. Função para CANCELAR
+  const handleCancelar = async (id: number) => {
+    if (window.confirm("Deseja realmente cancelar este agendamento?")) {
+      try {
+        await cancelarAgendamento(id);
+        alert("Cancelado com sucesso!");
+        carregarAgendamentos(); // 🔄 Recarrega a lista após cancelar
+      } catch (error) {
+        alert("Erro ao cancelar agendamento.");
+      }
+    }
+  };
+
+  // 5. Função para REAGENDAR (Exemplo simples com prompt)
+  const handleReagendar = async (id: number) => {
+    const novaData = prompt("Nova Data (AAAA-MM-DD):");
+    const novaHora = prompt("Nova Hora (HH:MM):");
+
+    if (novaData && novaHora) {
+      try {
+        await reagendarAgendamento(id, { data: novaData, hora: novaHora });
+        alert("Reagendado com sucesso!");
+        carregarAgendamentos(); // 🔄 Recarrega a lista
+      } catch (error) {
+        alert("Erro ao reagendar.");
+      }
+    }
+  };
+
   // Estados
   const [view, setView] = useState<
     | "home"
@@ -74,6 +165,171 @@ export function DashboardAdmin() {
     | "popularidade_servicos"
     | "promocoes"
   >("home");
+
+  ///////////////////////////////////////////////
+  ///clientes
+  const [clientes, setClientes] = useState<any[]>([]);
+
+  // 2. Função para carregar clientes
+  const carregarClientes = async () => {
+    try {
+      const dados = await listarClientes();
+      setClientes(dados);
+    } catch (error) {
+      console.error("Erro ao buscar clientes:", error);
+    }
+  };
+
+  // 3. Chamar o carregamento quando a view mudar para clientes
+  // 4. Função para alternar status (Ativar/Desativar)
+  const handleToggleCliente = async (id: number, statusAtual: string) => {
+    try {
+      if (statusAtual === "Ativo") {
+        await desativarCliente(id);
+        alert("Cliente desativado.");
+      } else {
+        await ativarCliente(id);
+        alert("Cliente ativado.");
+      }
+      carregarClientes(); // 🔄 recarrega a lista
+    } catch (error) {
+      alert("Erro ao alterar status do cliente.");
+    }
+  };
+
+  // No topo do componente DashboardAdmin, depois de carregar clientes
+  const handleAtivarCliente = (id: number) => {
+    const cliente = clientes.find((c) => c.id === id);
+    if (cliente) handleToggleCliente(id, "Inativo");
+  };
+
+  const handleDesativarCliente = (id: number) => {
+    const cliente = clientes.find((c) => c.id === id);
+    if (cliente) handleToggleCliente(id, "Ativo");
+  };
+
+  ////////////////////////////////////////777
+  //funcionarios
+  const [funcionarios, setFuncionarios] = useState<Funcionario[]>([]);
+
+  // 2. Função para buscar do Back-end
+  const carregarFuncionarios = async () => {
+    try {
+      const dados = await listarFuncionarios();
+      setFuncionarios(dados);
+    } catch (error) {
+      console.error("Erro ao carregar funcionários:", error);
+    }
+  };
+
+  // 3. Função para Remover
+  const handleRemoverFuncionario = async (id: number) => {
+    if (window.confirm("Tem certeza que deseja remover este funcionário?")) {
+      try {
+        await removerFuncionario(id);
+        alert("Funcionário removido!");
+        carregarFuncionarios(); // 🔄 Atualiza a lista
+      } catch (error) {
+        alert("Erro ao remover funcionário.");
+      }
+    }
+  };
+
+  ////////////////////////////////////////
+  //Servicos
+  const [servicoParaEditar, setServicoParaEditar] = useState<
+    Servico | undefined
+  >(undefined);
+
+  const carregarServicos = async () => {
+    try {
+      const dados = await listarServicos();
+      setServicos(dados);
+    } catch (error) {
+      console.error("Erro ao carregar serviços:", error);
+    }
+  };
+
+  const handleSalvarServico = async (dados: any) => {
+    try {
+      if (servicoParaEditar) {
+        // Se estamos editando
+        await atualizarServico(servicoParaEditar.id, dados);
+        alert("Serviço atualizado com sucesso!");
+      } else {
+        // Se é um novo serviço
+        await criarServico(dados);
+        alert("Serviço criado com sucesso!");
+      }
+      setShowServicoModal(false);
+      setServicoParaEditar(undefined);
+      carregarServicos(); //  Atualiza lista
+    } catch (error) {
+      console.error(error);
+      alert("Erro ao salvar o serviço.");
+    }
+  };
+
+  ///////////////////////////////////77
+  ///Promocoes
+  // ESTADOS
+  const [promocoes, setPromocoes] = useState<Promocao[]>([]);
+
+  const carregarPromocoes = async () => {
+    try {
+      const dados = await PromocaoService.listar();
+      setPromocoes(dados);
+    } catch (error) {
+      console.error("Erro ao carregar promoções:", error);
+    }
+  };
+
+  const handleAtivarPromocao = async (id: number) => {
+    try {
+      // Chamamos o serviço passando o estado 'ativo: true'
+      await PromocaoService.atualizar(id, { ativo: true });
+      alert("Promoção ativada com sucesso!");
+      carregarPromocoes(); //  Atualiza a lista para refletir a mudança
+    } catch (error) {
+      console.error(error);
+      alert("Erro ao ativar promoção.");
+    }
+  };
+
+  const handleDesativarPromocao = async (id: number) => {
+    try {
+      // Chamamos o serviço passando o estado 'ativo: false'
+      await PromocaoService.atualizar(id, { ativo: false });
+      alert("Promoção desativada.");
+      carregarPromocoes(); //  Atualiza a lista
+    } catch (error) {
+      console.error(error);
+      alert("Erro ao desativar promoção.");
+    }
+  };
+
+  useEffect(() => {
+    if (view === "promocoes") {
+      carregarPromocoes();
+    }
+  }, [view]);
+
+  ////////////////////////////
+  ////logs do sistema
+  const carregarAuditoria = async () => {
+    try {
+      const data = await AuditoriaService.listar();
+      setLogsAuditoria(data);
+    } catch (error) {
+      console.error("Erro ao carregar auditoria", error);
+      alert("Erro ao carregar logs de auditoria");
+    }
+  };
+  useEffect(() => {
+    if (view === "logs") {
+      carregarAuditoria();
+    }
+  }, [view]);
 
   const [showServicoModal, setShowServicoModal] = useState(false);
   const [funcionarioSelecionado, setFuncionarioSelecionado] =
@@ -96,47 +352,12 @@ export function DashboardAdmin() {
     return agendamento >= agora;
   };
 
-  const agendamentosRecentes: Agendamento[] = [
-    {
-      id: 1,
-      cliente: "Marta Tavares",
-      servico: "Limpeza de Pele",
-      profissional: "Ana Beatriz",
-      data: "2023-10-27",
-      hora: "09:00",
-      status: "Confirmado",
-    },
-    {
-      id: 2,
-      cliente: "Carla Antunes",
-      servico: "Massagem Relaxante",
-      profissional: "Sofia Lemos",
-      data: "2023-10-27",
-      hora: "10:30",
-      status: "Pendente",
-    },
-    {
-      id: 3,
-      cliente: "Joana Dias",
-      servico: "Manicure",
-      profissional: "Ana Beatriz",
-      data: "2026-10-26",
-      telefone: "912345678",
-      hora: "14:00",
-      status: "Cancelado",
-    },
-    {
-      id: 4,
-      cliente: "Rita Gomes",
-      servico: "Depilação",
-      profissional: "Sofia Lemos",
-      data: "2027-10-26",
-      telefone: "9500589",
-      hora: "15:30",
-      status: "Remarcado",
-    },
-  ];
-
+  const precoServico: Record<string, number> = {
+    "Limpeza de Pele": 2500,
+    "Massagem Relaxante": 3000,
+    Manicure: 1500,
+    Depilação: 2000,
+  };
   // =====================
   // CÁLCULOS REAIS
   // =====================
@@ -146,66 +367,27 @@ export function DashboardAdmin() {
   hoje.setHours(0, 0, 0, 0);
 
   // 🔹 Agendamentos de hoje
-  const agendamentosHoje = agendamentosRecentes.filter((item) => {
-    const data = new Date(item.data);
-    data.setHours(0, 0, 0, 0);
-    return data.getTime() === hoje.getTime();
-  });
-
-  // 🔹 Clientes únicos
-  const clientesUnicos = new Set(
-    agendamentosRecentes.map((item) => item.cliente)
+  const agendamentosHoje = agendamentos.filter((item) =>
+    isHojeOuFuturo(item.data, item.hora)
   );
 
-  // 🔹 Serviço mais popular
+  const clientesUnicos = new Set(agendamentos.map((item) => item.cliente));
+
   const contagemServicos: Record<string, number> = {};
-  agendamentosRecentes.forEach((item) => {
+  agendamentos.forEach((item) => {
     contagemServicos[item.servico] = (contagemServicos[item.servico] || 0) + 1;
   });
 
   const servicoMaisPopular =
     Object.entries(contagemServicos).sort((a, b) => b[1] - a[1])[0]?.[0] || "—";
 
-  // 🔹 Faturamento mensal
-  const precoServico: Record<string, number> = {
-    "Limpeza de Pele": 2500,
-    "Massagem Relaxante": 3000,
-    Manicure: 1500,
-    Depilação: 2000,
-  };
-
-  const faturamentoMensal = agendamentosRecentes.reduce(
-    (total, item) => total + (precoServico[item.servico] || 0),
-    0
-  );
-
-  const [funcionarios, setFuncionarios] = useState<Funcionario[]>([
-    {
-      id: 1,
-      nome: "Ana Beatriz",
-      especialidade: "Estética Facial",
-      email: "ana.b@maddie.com",
-      telefone: "9912345",
-      status: "Ativo",
-    },
-    {
-      id: 2,
-      nome: "Sofia Lemos",
-      especialidade: "Massoterapia",
-      email: "sofia.l@maddie.com",
-      telefone: "9955667",
-      status: "Ativo",
-    },
-    {
-      id: 3,
-      nome: "Marta Pires",
-      especialidade: "Manicure",
-      email: "marta.p@maddie.com",
-      telefone: "9988776",
-      status: "Inativo",
-    },
-  ]);
-
+  const faturamentoMensal = agendamentos.reduce((total, item) => {
+    // Procura o serviço na lista que veio do banco
+    const servicoEncontrado = servicos.find((s) => s.nome === item.servico);
+    // Se encontrou, usa o preço do banco, senão usa 0
+    const valor = servicoEncontrado ? Number(servicoEncontrado.preco) : 0;
+    return total + valor;
+  }, 0);
   const totalFuncionarios = funcionarios.length;
 
   return (
@@ -279,7 +461,7 @@ export function DashboardAdmin() {
           </div>
 
           {/* ===== AGENDAMENTOS & SERVIÇOS ===== */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-10 sm:mb-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 max-w-full gap-4 sm:gap-6 mb-10 sm:mb-8">
             {/* Agendamentos */}
             <div className=" rounded-3xl  border border-gray-300 p-4 sm:p-6">
               <div className="flex justify-between items-center mb-4 sm:mb-6">
@@ -294,34 +476,38 @@ export function DashboardAdmin() {
                 </button>
               </div>
               <div className="space-y-2 sm:space-y-4">
-                {agendamentosRecentes
-                  .filter((item) => {
-                    const hoje = new Date();
-                    hoje.setHours(0, 0, 0, 0);
-
-                    const dataAgendamento = new Date(item.data);
-                    dataAgendamento.setHours(0, 0, 0, 0);
-
-                    return dataAgendamento >= hoje;
-                  })
-                  .sort(ordenarPorDataHora)
-                  .map((item) => (
-                    <Agenda_Item
-                      key={item.id}
-                      id={item.id}
-                      cliente={item.cliente}
-                      telefone={item.telefone || ""}
-                      servico={`${item.servico} • ${item.profissional}`}
-                      data={item.data}
-                      hora={item.hora}
-                      status={item.status}
-                      clickable={false}
-                      onItemClick={() => setView("todos-agendamentos")}
-                      onClienteClick={() => setView("clientes")}
-                      onRemarcar={() => {}}
-                      onCancelar={() => {}}
-                    />
-                  ))}
+                {loading ? (
+                  <p>A carregar agendamentos...</p>
+                ) : (
+                  agendamentos
+                    .filter((item) => {
+                      const hoje = new Date();
+                      hoje.setHours(0, 0, 0, 0);
+                      const dataAgendamento = new Date(item.data);
+                      dataAgendamento.setHours(0, 0, 0, 0);
+                      return dataAgendamento >= hoje;
+                    })
+                    .sort(ordenarPorDataHora)
+                    .slice(0, 5) // Mostra apenas os 5 primeiros na Home
+                    .map((item) => (
+                      <Agenda_Item
+                        key={item.id}
+                        id={item.id}
+                        cliente={item.cliente}
+                        telefone={item.telefone || ""}
+                        servico={`${item.servico} • ${item.profissional}`}
+                        data={item.data}
+                        hora={item.hora}
+                        status={item.status}
+                        clickable={true}
+                        onItemClick={() => setView("todos-agendamentos")}
+                        onClienteClick={() => setView("clientes")}
+                        // LIGAÇÃO COM O BACK-END AQUI:
+                        onCancelar={() => handleCancelar(item.id)}
+                        onRemarcar={() => handleReagendar(item.id)}
+                      />
+                    ))
+                )}
               </div>
             </div>
 
@@ -330,12 +516,14 @@ export function DashboardAdmin() {
               <h2 className="text-lg sm:text-xl font-bold text-black mb-4 sm:mb-6 text-left">
                 Serviços Disponíveis
               </h2>
-              <div className="grid grid-cols-2 gap-2 sm:gap-4">
-                <ServiceBadge name="Manicure" count="4000 esc" />
-                <ServiceBadge name="Limpeza de Pele" count="3200 esc" />
-                <ServiceBadge name="Massagem" count="2800 esc" />
-                <ServiceBadge name="Depilação" count="1500 esc" />
-              </div>
+              {servicos.map((servico) => (
+                <ServiceBadge
+                  key={servico.id}
+                  name={servico.nome}
+                  count={`${servico.preco} esc`}
+                />
+              ))}
+
               <button
                 onClick={() => setShowServicoModal(true)}
                 className="w-full mt-4 sm:mt-6 py-2 sm:py-3 border-2 border-dashed border-[#b5820e] text-[#b5820e] rounded-2xl font-bold flex items-center justify-center gap-1 sm:gap-2 hover:bg-amber-50 transition"
@@ -378,56 +566,87 @@ export function DashboardAdmin() {
                 <h2 className="text-lg sm:text-xl font-bold">Corpo Técnico</h2>
                 <Settings className="text-gray-400" size={18} />
               </div>
+
               <div className="flex flex-col gap-2 sm:gap-3">
-                {["Ana Beatriz", "Sofia Lemos", "Marta Pires"].map(
-                  (nome, idx) => (
+                {/* Verificamos se existem funcionários carregados */}
+                {funcionarios.length === 0 ? (
+                  <p className="text-gray-500 text-xs italic">
+                    Nenhum profissional registado.
+                  </p>
+                ) : (
+                  // Exibimos apenas os 3 primeiros na Home para não ocupar muito espaço
+                  funcionarios.slice(0, 3).map((func) => (
                     <div
-                      key={idx}
+                      key={func.id}
                       className="flex items-center justify-between p-2 sm:p-3 border-l-4 border-[#b5820e] bg-gray-900 rounded-r-xl"
                     >
                       <span className="text-[10px] sm:text-sm font-bold">
-                        {nome}
+                        {func.nome}
                       </span>
-                      <span className="text-[8px] sm:text-[10px] px-2 py-1 rounded-md font-bold uppercase text-green-400 bg-green-900">
-                        Ativo
+
+                      {/* Status dinâmico: verde se Ativo, vermelho se Inativo */}
+                      <span
+                        className={`text-[8px] sm:text-[10px] px-2 py-1 rounded-md font-bold uppercase ${
+                          func.status === "Ativo"
+                            ? "text-green-400 bg-green-900"
+                            : "text-red-400 bg-red-900"
+                        }`}
+                      >
+                        {func.status}
                       </span>
                     </div>
-                  )
+                  ))
                 )}
+
                 <button
                   onClick={() => setView("equipa")}
                   className="w-full mt-2 py-2 sm:py-3 bg-[#b5820e] text-black rounded-2xl font-bold text-xs sm:text-sm hover:opacity-90 transition"
                 >
-                  Gerir Profissionais
+                  {/* Mostra o total real de funcionários no botão */}
+                  Gerir Profissionais ({funcionarios.length})
                 </button>
               </div>
             </div>
 
             {/* Logs */}
+            {/* Logs Dinâmicos na Home */}
             <div className="bg-gray-800 rounded-3xl p-4 sm:p-6 shadow-xl text-white">
               <div className="flex items-center gap-2 mb-4 sm:mb-6">
                 <ShieldCheck className="text-[#b5820e]" size={18} />
                 <h2 className="text-lg sm:text-xl font-bold">Logs Sistema</h2>
               </div>
+
               <div className="space-y-2 sm:space-y-4 font-mono text-[8px] sm:text-[10px] text-gray-400">
-                <p>
-                  <span className="text-[#b5820e]">[14:30]</span> ADMIN criou
-                  serviço.
-                </p>
-                <p>
-                  <span className="text-[#b5820e]">[10:05]</span> SISP:
-                  Confirmado #448.
-                </p>
+                {logsAuditoria.length === 0 ? (
+                  <p className="italic">Nenhuma atividade registada.</p>
+                ) : (
+                  // Exibe os 3 logs mais recentes
+                  logsAuditoria.slice(0, 3).map((log, index) => (
+                    <p key={index}>
+                      <span className="text-[#b5820e]">
+                        [
+                        {new Date(log.data_hora).toLocaleTimeString([], {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                        ]
+                      </span>{" "}
+                      {log.usuario_nome?.toUpperCase()}: {log.acao}
+                    </p>
+                  ))
+                )}
               </div>
+
               <button
                 onClick={() => setView("logs")}
                 className="w-full mt-4 sm:mt-6 py-1 sm:py-2 text-[#b5820e] border border-[#b5820e] rounded-xl text-[9px] sm:text-xs font-bold hover:bg-[#b5820e] hover:text-black transition"
               >
-                Ver Auditoria
+                Ver Auditoria Completa ({logsAuditoria.length})
               </button>
             </div>
 
             {/* Promoções */}
+            {/* Card de Promoções Dinâmico na Home */}
             <div className="bg-gray-800 text-white rounded-3xl shadow-sm border border-gray-700 p-4 sm:p-6">
               <div className="flex items-center justify-between mb-4 sm:mb-6">
                 <h2 className="text-lg sm:text-xl font-bold text-[#b5820e]">
@@ -436,93 +655,157 @@ export function DashboardAdmin() {
                 <TrendingUp className="text-[#b5820e]" size={18} />
               </div>
 
-              {/* Lista de promoções */}
+              {/* Lista de promoções vinda do Back-end */}
               <div className="space-y-2 sm:space-y-3">
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-2 sm:p-4 bg-gray-900 rounded-2xl">
-                  <div>
-                    <p className="text-xs sm:text-sm font-bold text-white">
-                      Desconto Massagem
-                    </p>
-                    <p className="text-[8px] sm:text-[10px] text-gray-400">
-                      -20% até 30/01
-                    </p>
-                  </div>
-                  <span className="text-[8px] sm:text-[10px] font-bold text-green-400 bg-green-900 px-2 py-1 rounded-full mt-1 sm:mt-0">
-                    Ativa
-                  </span>
-                </div>
+                {promocoes.length === 0 ? (
+                  <p className="text-gray-500 text-xs italic">
+                    Nenhuma promoção registada.
+                  </p>
+                ) : (
+                  // Exibimos apenas as 2 promoções mais recentes na Home
+                  promocoes.slice(0, 2).map((promo) => (
+                    <div
+                      key={promo.id}
+                      className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-2 sm:p-4 bg-gray-900 rounded-2xl"
+                    >
+                      <div>
+                        <p className="text-xs sm:text-sm font-bold text-white">
+                          {promo.titulo}
+                        </p>
+                        <p className="text-[8px] sm:text-[10px] text-gray-400">
+                          Válido até{" "}
+                          {new Date(promo.validade).toLocaleDateString("pt-PT")}
+                        </p>
+                      </div>
 
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-2 sm:p-4 bg-gray-900 rounded-2xl">
-                  <div>
-                    <p className="text-xs sm:text-sm font-bold text-white">
-                      Manicure & Pedicure
-                    </p>
-                    <p className="text-[8px] sm:text-[10px] text-gray-400">
-                      Pack especial
-                    </p>
-                  </div>
-                  <span className="text-[8px] sm:text-[10px] font-bold text-red-500 bg-red-900 px-2 py-1 rounded-full mt-1 sm:mt-0">
-                    Inativa
-                  </span>
-                </div>
+                      <span
+                        className={`text-[8px] sm:text-[10px] font-bold px-2 py-1 rounded-full mt-1 sm:mt-0 ${
+                          promo.ativo
+                            ? "text-green-400 bg-green-900"
+                            : "text-red-500 bg-red-900"
+                        }`}
+                      >
+                        {promo.ativo ? "Ativa" : "Inativa"}
+                      </span>
+                    </div>
+                  ))
+                )}
               </div>
 
-              {/* Botão admin */}
+              {/* Botão para gerir todas as promoções */}
               <button
                 onClick={() => setView("promocoes")}
                 className="w-full mt-4 sm:mt-6 py-2 sm:py-3 bg-[#b5820e] text-black rounded-2xl font-bold text-xs sm:text-sm flex items-center justify-center gap-1 sm:gap-2 hover:opacity-90 transition"
               >
-                <Plus size={16} /> Criar / Gerir Promoções
+                <Plus size={16} /> Criar / Gerir Promoções ({promocoes.length})
               </button>
             </div>
           </div>
         </>
       )}
-
       {/* ===== VIEWS DINÂMICAS ===== */}
       {view === "promocoes" && (
-        <Promocoes_Admin onVoltar={() => setView("home")} />
+        <Promocoes_Admin
+          promocoes={promocoes}
+          servicosReais={servicos} //  Passando os serviços do banco
+          onVoltar={() => setView("home")}
+          onAtivar={handleAtivarPromocao}
+          onDesativar={handleDesativarPromocao}
+          onAtualizar={() => carregarPromocoes()} // Passa a função para o filho se atualizar
+        />
       )}
+
       {view === "popularidade_servicos" && (
-        <Popularidade_Servicos onVoltar={() => setView("home")} />
+        <Popularidade_Servicos
+          agendamentos={agendamentos} //  Passa os dados reais aqui
+          onVoltar={() => setView("home")}
+        />
       )}
       {view === "clientes" && (
-        <Lista_Clientes onVoltar={() => setView("home")} />
+        <Lista_Clientes
+          clientes={clientes}
+          onVoltar={() => setView("home")}
+          onAtivar={handleAtivarCliente}
+          onDesativar={handleDesativarCliente}
+        />
       )}
       {view === "todos-agendamentos" && (
-        <Agendamentos_Lista onVoltar={() => setView("home")} />
+        <Agendamentos_Lista
+          agendamentos={agendamentos} // Passa a lista do banco
+          onVoltar={() => setView("home")}
+          onCancelar={handleCancelar} // Passa a função de cancelar
+          onReagendar={handleReagendar} // Passa a função de reagendar
+        />
       )}
       {view === "financeiro" && (
         <Relatorios_Financeiros onVoltar={() => setView("home")} />
       )}
-      {view === "logs" && <Auditoria_Logs onVoltar={() => setView("home")} />}
+      {view === "logs" && (
+        <Auditoria_Logs logs={logsAuditoria} onVoltar={() => setView("home")} />
+      )}
+
       {view === "equipa" && (
         <Gerir_Funcionarios
+          funcionarios={funcionarios}
           onVoltar={() => setView("home")}
           onNovoFuncionario={() => {
             setFuncionarioSelecionado(null);
             setView("novo-funcionario");
           }}
-          onEditarFuncionario={abrirEdicao}
+          onEditarFuncionario={(func) => {
+            setFuncionarioSelecionado(func);
+            setView("novo-funcionario");
+          }}
+          onRemover={handleRemoverFuncionario}
         />
       )}
+
       {view === "novo-funcionario" && (
         <Formulario_Funcionario
-          onVoltar={() => setView("equipa")}
           funcionarioParaEditar={funcionarioSelecionado}
+          onVoltar={() => setView("equipa")}
+          onSalvar={async (dados) => {
+            try {
+              if (funcionarioSelecionado) {
+                // Se existe um selecionado, é EDIÇÃO (PUT)
+                await atualizarFuncionario(funcionarioSelecionado.id, dados);
+                alert("Funcionário atualizado!");
+              } else {
+                // Se não existe, é NOVO (POST)
+                await criarFuncionario(dados);
+                alert("Funcionário criado com sucesso!");
+              }
+              carregarFuncionarios(); // 🔄 Atualiza a lista global
+              setView("equipa"); // Volta para a listagem
+            } catch (error) {
+              alert("Erro ao salvar funcionário. Verifique os dados.");
+            }
+          }}
         />
       )}
 
       {/* MODAL NOVO SERVIÇO */}
       {showServicoModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <Formulario_Servico
-            onVoltar={() => setShowServicoModal(false)}
-            onSubmit={(data) => {
-              console.log("Novo serviço:", data);
-              setShowServicoModal(false);
-            }}
-          />
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+          onClick={() => {
+            setShowServicoModal(false);
+            setServicoParaEditar(undefined);
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="bg-white p-6 rounded-3xl w-full max-w-md"
+          >
+            <Formulario_Servico
+              onVoltar={() => {
+                setShowServicoModal(false);
+                setServicoParaEditar(undefined);
+              }}
+              onSubmit={handleSalvarServico}
+              servicoParaEditar={servicoParaEditar}
+            />
+          </div>
         </div>
       )}
     </div>
@@ -570,7 +853,7 @@ function ServiceBadge({ name, count }: ServiceBadgeProps) {
           {name}
         </span>
         <span className="text-xs sm:text-sm font-bold text-gray-500 ml-2">
-         - {count}
+          - {count}
         </span>
       </div>
     </div>

@@ -1,23 +1,37 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+
+interface ServicoData {
+  nome: string;
+  duracao: number;
+  preco: number;
+  ativo: boolean;
+}
 
 interface FormularioServicoProps {
   onVoltar: () => void;
-  onSubmit: (data: {
-    nome: string;
-    duracao: number;
-    preco: number;
-    ativo: boolean;
-  }) => void;
+  onSubmit: (data: ServicoData) => void;
+  servicoParaEditar?: ServicoData; // opcional
 }
 
 export function Formulario_Servico({
   onVoltar,
   onSubmit,
+  servicoParaEditar,
 }: FormularioServicoProps) {
   const [nome, setNome] = useState("");
   const [duracao, setDuracao] = useState<number | "">("");
   const [preco, setPreco] = useState<number | "">("");
   const [ativo, setAtivo] = useState(true);
+
+  // Preenche o formulário se estivermos editando
+  useEffect(() => {
+    if (servicoParaEditar) {
+      setNome(servicoParaEditar.nome);
+      setDuracao(servicoParaEditar.duracao);
+      setPreco(servicoParaEditar.preco);
+      setAtivo(servicoParaEditar.ativo);
+    }
+  }, [servicoParaEditar]);
 
   const handleSubmit = () => {
     if (!nome || !duracao || !preco) {
@@ -32,15 +46,17 @@ export function Formulario_Servico({
       ativo,
     });
 
-    setNome("");
-    setDuracao("");
-    setPreco("");
-    setAtivo(true);
+    // Resetar campos só se for criação, não edição
+    if (!servicoParaEditar) {
+      setNome("");
+      setDuracao("");
+      setPreco("");
+      setAtivo(true);
+    }
   };
 
   return (
-    <div className="bg-white rounded-3xl shadow-xl border border-gray-100 p-6 sm:p-10 max-w-3xl mx-auto animate-in fade-in slide-in-from-bottom-4">
-      
+    <div className="rounded-3xl   p-6 sm:p-10 max-w-5xl mx-auto animate-in fade-in slide-in-from-bottom-4">
       {/* HEADER */}
       <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-8">
         <button
@@ -51,12 +67,11 @@ export function Formulario_Servico({
         </button>
 
         <h2 className="text-2xl sm:text-3xl font-serif font-black text-black">
-          Cadastrar Novo Serviço
+          {servicoParaEditar ? "Editar Serviço" : "Cadastrar Novo Serviço"}
         </h2>
       </div>
 
       <form className="space-y-6" onSubmit={(e) => e.preventDefault()}>
-        
         {/* Nome */}
         <div>
           <label className="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">
@@ -124,7 +139,7 @@ export function Formulario_Servico({
           onClick={handleSubmit}
           className="w-full py-4 bg-black text-[#b5820e] rounded-2xl font-black uppercase tracking-widest hover:opacity-90 transition shadow-lg text-sm"
         >
-          Cadastrar Serviço
+          {servicoParaEditar ? "Salvar Alterações" : "Cadastrar Serviço"}
         </button>
       </form>
     </div>
