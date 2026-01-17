@@ -1,12 +1,22 @@
 import React, { useState } from "react";
-import { Save, User, Scissors, Phone, Calendar as CalendarIcon, Clock } from "lucide-react";
+import {
+  Save,
+  User,
+  Scissors,
+  Phone,
+  Calendar as CalendarIcon,
+  Clock,
+} from "lucide-react";
 
 interface FormProps {
   onVoltar: () => void;
   onSubmit: (dados: any) => void; // Função que criamos no DashboardFuncionario
 }
 
-export function Form_Agendamento_Funcionario({ onVoltar, onSubmit }: FormProps) {
+export function Form_Agendamento_Funcionario({
+  onVoltar,
+  onSubmit,
+}: FormProps) {
   // 1. Estados para capturar o que o funcionário digita
   const [cliente, setCliente] = useState("");
   const [telefone, setTelefone] = useState("");
@@ -29,7 +39,7 @@ export function Form_Agendamento_Funcionario({ onVoltar, onSubmit }: FormProps) 
       servico,
       data,
       hora,
-      status: "Confirmado" // Por padrão, agendamento de balcão entra como confirmado
+      status: "confirmado", // Alinhado com status_agendamento.nome da BD
     };
 
     onSubmit(dadosAgendamento);
@@ -40,7 +50,7 @@ export function Form_Agendamento_Funcionario({ onVoltar, onSubmit }: FormProps) 
       <h2 className="text-2xl sm:text-3xl font-serif text-center font-black text-black mb-6 sm:mb-8">
         Nova Marcação
       </h2>
-      
+
       <form onSubmit={handleSubmit} className="space-y-6 text-left">
         {/* Nome da Cliente */}
         <div className="space-y-2">
@@ -48,7 +58,10 @@ export function Form_Agendamento_Funcionario({ onVoltar, onSubmit }: FormProps) 
             Nome da Cliente
           </label>
           <div className="relative">
-            <User className="absolute left-3 sm:left-4 top-3 sm:top-4 text-gray-300" size={18} />
+            <User
+              className="absolute left-3 sm:left-4 top-3 sm:top-4 text-gray-300"
+              size={18}
+            />
             <input
               type="text"
               required
@@ -66,7 +79,10 @@ export function Form_Agendamento_Funcionario({ onVoltar, onSubmit }: FormProps) 
             Telefone
           </label>
           <div className="relative">
-            <Phone className="absolute left-3 sm:left-4 top-3 sm:top-4 text-gray-300" size={18} />
+            <Phone
+              className="absolute left-3 sm:left-4 top-3 sm:top-4 text-gray-300"
+              size={18}
+            />
             <input
               type="text"
               placeholder="Digite o telefone..."
@@ -83,8 +99,11 @@ export function Form_Agendamento_Funcionario({ onVoltar, onSubmit }: FormProps) 
             Serviço Especializado
           </label>
           <div className="relative">
-            <Scissors className="absolute left-3 sm:left-4 top-3 sm:top-4 text-[#b5820e]" size={18} />
-            <select 
+            <Scissors
+              className="absolute left-3 sm:left-4 top-3 sm:top-4 text-[#b5820e]"
+              size={18}
+            />
+            <select
               className="w-full p-3 sm:p-4 pl-10 sm:pl-12 bg-gray-50 rounded-2xl border-none focus:ring-2 focus:ring-[#b5820e] outline-none appearance-none"
               value={servico}
               onChange={(e) => setServico(e.target.value)}
@@ -133,7 +152,7 @@ export function Form_Agendamento_Funcionario({ onVoltar, onSubmit }: FormProps) 
           >
             Cancelar
           </button>
-          
+
           <button
             type="submit"
             className="flex-[2] py-4 bg-black text-[#b5820e] rounded-2xl font-black uppercase tracking-[0.2em] shadow-xl hover:opacity-90 transition flex items-center justify-center gap-3"

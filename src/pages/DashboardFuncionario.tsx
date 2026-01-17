@@ -12,11 +12,18 @@ import { useNavigate } from "react-router-dom";
 import { FuncionarioService } from "../services/Funcionario.service";
 
 // Imports de Componentes
-import { Agenda_Item } from "../components/Agenda_Item";
+import { Agenda_Item, AgendaItemProps } from "../components/Agenda_Item";
 import { Gestao_Disponibilidade } from "../components/Gestao_Disponibilidade";
 import { Form_Agendamento_Funcionario } from "../components/Form_Agendamento_Funcionario";
 import { Lista_Clientes } from "../components/Lista_Clientes";
 import { Cliente } from "../components/Lista_Clientes";
+import { Agendamento } from "./DashboardAdmin";
+import {
+  safeArray,
+  parseDateSafe,
+  toDateParts,
+  ensureAgendaItem,
+} from "../utils/dataHelpers";
 
 // =====================
 // DASHBOARD FUNCIONÁRIO
@@ -30,6 +37,19 @@ export function DashboardFuncionario() {
     | "novo"
     | "Lista_clientes"
   >("home");
+  interface AgendamentoBackend {
+    id: number;
+    cliente_nome: string; // usuario.nome
+    cliente_apelido: string; // usuario.apelido
+    cliente_email: string; // usuario.email
+    cliente_telefone: string; // usuario.numero_telefone
+    nome_servico: string; // servico.nome_servico
+    status: string; // status_agendamento.nome
+    data_hora_inicio: string; // agendamento.data_hora_inicio
+    data_hora_fim: string; // agendamento.data_hora_fim
+    duracao_minutos: number; // servico.duracao_minutos
+    preco: string; // servico.preco
+  }
 
   // 3. Substitua a agenda estática por este estado:
   const [agenda, setAgenda] = useState<any[]>([]);
@@ -42,7 +62,7 @@ export function DashboardFuncionario() {
   const [filtroCliente, setFiltroCliente] = useState("");
   const [filtroServico, setFiltroServico] = useState("");
   const [filtroStatus, setFiltroStatus] = useState<
-    "Confirmado" | "Pendente" | "Cancelado" | "Remarcado" | ""
+    "confirmado" | "pendente" | "cancelado" | "reagendado" | ""
   >("");
   const [filtroData, setFiltroData] = useState("");
 
@@ -65,16 +85,34 @@ export function DashboardFuncionario() {
       let dados;
 
       if (view === "historico") {
-        // Chama router.get("/historico", ...) do back-end
         dados = await FuncionarioService.verMeuHistorico();
       } else {
-        // Chama router.get("/listar-agendamentos", ...) do back-end
         dados = await FuncionarioService.listarMinhaAgenda();
       }
 
-      setAgenda(dados); // Atualiza o estado com os dados do banco
+      const agendaArray = safeArray<any>(dados);
+
+      // Normaliza e protege cada item vindo do backend
+      const agendaFormatada = agendaArray.map((item: any) => ensureAgendaItem(item));
+
+      // Opcional: filtrar apenas hoje ou futuro como antes
+      const hoje = new Date();
+      hoje.setHours(0, 0, 0, 0);
+
+      const agendaFiltrada = agendaFormatada.filter((it) => {
+        const d = parseDateSafe(`${it.data}T${it.hora}`);
+        if (!d) return false;
+        d.setHours(0, 0, 0, 0);
+        return d >= hoje;
+      });
+
+      console.log("[DEBUG] Dados do backend:", agendaArray);
+      console.log("[DEBUG] Dados formatados:", agendaFormatada);
+
+      setAgenda(agendaFormatada);
     } catch (error) {
       console.error("Erro ao carregar dados:", error);
+      setAgenda([]);
     } finally {
       setLoading(false);
     }
@@ -126,32 +164,31 @@ export function DashboardFuncionario() {
     }
   };
 
-
   const handleCriarAgendamento = async (dadosDoForm: any) => {
-  try {
-    // 1. Chama o serviço que criamos no ficheiro Funcionario.service.ts
-    // Rota: router.post("/agendamentos", agendamento_Controller.fazer_agendamento);
-    await FuncionarioService.fazerNovoAgendamento(dadosDoForm);
-    
-    alert("Agendamento registado com sucesso! 🎉");
-    
-    // 2. Volta para a Home
-    setView("home");
-    
-    // 3. Recarrega a agenda para o novo agendamento aparecer na lista
-    carregarDados(); 
-    
-  } catch (error) {
-    console.error("Erro ao criar agendamento:", error);
-    alert("Erro ao criar agendamento. Verifique se o horário está disponível.");
-  }
-};
+    try {
+      // 1. Chama o serviço que criamos no ficheiro Funcionario.service.ts
+      // Rota: router.post("/agendamentos", agendamento_Controller.fazer_agendamento);
+      await FuncionarioService.fazerNovoAgendamento(dadosDoForm);
 
-  const hoje = new Date();
+      alert("Agendamento registado com sucesso! 🎉");
+
+      // 2. Volta para a Home
+      setView("home");
+
+      // 3. Recarrega a agenda para o novo agendamento aparecer na lista
+      carregarDados();
+    } catch (error) {
+      console.error("Erro ao criar agendamento:", error);
+      alert(
+        "Erro ao criar agendamento. Verifique se o horário está disponível."
+      );
+    }
+  };
 
   const isHojeOuFuturo = (data: string, hora: string) => {
     const agora = new Date();
-    const agendamento = new Date(`${data}T${hora}`);
+    const agendamento = parseDateSafe(`${data}T${hora}`);
+    if (!agendamento) return false;
     return agendamento >= agora;
   };
 
@@ -174,7 +211,8 @@ export function DashboardFuncionario() {
 
   const isAgendamentoPassado = (data: string, hora: string) => {
     const agora = new Date();
-    const agendamento = new Date(`${data}T${hora}`);
+    const agendamento = parseDateSafe(`${data}T${hora}`);
+    if (!agendamento) return false;
     return agendamento < agora;
   };
 
@@ -186,7 +224,7 @@ export function DashboardFuncionario() {
   const [filtroServicoHist, setFiltroServicoHist] = useState("");
   const [filtroDataHist, setFiltroDataHist] = useState("");
   const [filtroStatusHist, setFiltroStatusHist] = useState<
-    "Confirmado" | "Pendente" | "Cancelado" | "Remarcado" | ""
+    "confirmado" | "pendente" | "cancelado" | "reagendado" | ""
   >("");
   const ordenarPorDataHora = (
     a: { data: string; hora: string },
@@ -310,7 +348,7 @@ export function DashboardFuncionario() {
 
               <div className="space-y-4">
                 {/* Dentro do map da Agenda */}
-                {agendaPaginada.map((item) => (
+                {agendaHojeOuFuturo.map((item) => (
                   <Agenda_Item
                     key={item.id}
                     id={item.id}
@@ -419,19 +457,19 @@ export function DashboardFuncionario() {
               onChange={(e) =>
                 setFiltroStatusHist(
                   e.target.value as
-                    | "Confirmado"
-                    | "Pendente"
-                    | "Cancelado"
-                    | "Remarcado"
+                    | "confirmado"
+                    | "pendente"
+                    | "cancelado"
+                    | "reagendado"
                     | ""
                 )
               }
             >
               <option value="">Todos os Status</option>
-              <option value="Confirmado">Confirmado</option>
-              <option value="Pendente">Pendente</option>
-              <option value="Cancelado">Cancelado</option>
-              <option value="Remarcado">Remarcado</option>
+              <option value="confirmado">Confirmado</option>
+              <option value="pendente">Pendente</option>
+              <option value="cancelado">Cancelado</option>
+              <option value="reagendado">Reagendado</option>
             </select>
             <input
               type="date"
@@ -444,18 +482,23 @@ export function DashboardFuncionario() {
           {/* AGENDA FILTRADA */}
           {agenda
             .filter((item) => {
-              const nomeMatch = item.cliente
+              const nomeMatch = (item.cliente ?? "")
                 .toLowerCase()
                 .includes(filtroCliente.toLowerCase());
-              const servicoMatch = item.servico
+
+              const servicoMatch = (item.servico ?? "")
                 .toLowerCase()
                 .includes(filtroServico.toLowerCase());
+
               const statusMatch = filtroStatus
                 ? item.status === filtroStatus
                 : true;
+
               const dataMatch = filtroData ? item.data === filtroData : true;
+
               return nomeMatch && servicoMatch && statusMatch && dataMatch;
             })
+
             .map((item) => (
               <Agenda_Item
                 key={item.id}
@@ -479,12 +522,12 @@ export function DashboardFuncionario() {
       {view === "disponibilidade" && <Gestao_Disponibilidade />}
 
       {view === "novo" && (
-  <Form_Agendamento_Funcionario 
-    onVoltar={() => setView("home")} 
-    // Passamos a nossa função handleCriarAgendamento para ser usada no submit do form
-    onSubmit={handleCriarAgendamento} 
-  />
-)}
+        <Form_Agendamento_Funcionario
+          onVoltar={() => setView("home")}
+          // Passamos a nossa função handleCriarAgendamento para ser usada no submit do form
+          onSubmit={handleCriarAgendamento}
+        />
+      )}
 
       {view === "historico" && (
         <div className="space-y-6">
@@ -522,33 +565,33 @@ export function DashboardFuncionario() {
               onChange={(e) =>
                 setFiltroStatus(
                   e.target.value as
-                    | "Confirmado"
-                    | "Pendente"
-                    | "Cancelado"
-                    | "Remarcado"
+                    | "confirmado"
+                    | "pendente"
+                    | "cancelado"
+                    | "reagendado"
                     | ""
                 )
               }
             >
               <option value="">Todos os Status</option>
-              <option value="Confirmado">Confirmado</option>
-              <option value="Pendente">Pendente</option>
-              <option value="Cancelado">Cancelado</option>
-              <option value="Remarcado">Remarcado</option>
+              <option value="confirmado">Confirmado</option>
+              <option value="pendente">Pendente</option>
+              <option value="cancelado">Cancelado</option>
+              <option value="reagendado">Reagendado</option>
             </select>
           </div>
 
           {/* LISTA DO HISTÓRICO */}
           <div className="space-y-4">
             {agenda
-
               .filter((item) => isAgendamentoPassado(item.data, item.hora))
+
               .filter((item) => {
-                const clienteMatch = item.cliente
+                const clienteMatch = (item.cliente ?? "")
                   .toLowerCase()
                   .includes(filtroClienteHist.toLowerCase());
 
-                const servicoMatch = item.servico
+                const servicoMatch = (item.servico ?? "")
                   .toLowerCase()
                   .includes(filtroServicoHist.toLowerCase());
 
@@ -558,6 +601,7 @@ export function DashboardFuncionario() {
 
                 return clienteMatch && servicoMatch && dataMatch;
               })
+
               .map((item) => (
                 <Agenda_Item
                   id={item.id}

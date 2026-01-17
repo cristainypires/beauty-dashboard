@@ -6,7 +6,6 @@ import {
   Filter,
   Calendar,
   ChevronLeft,
-  Download,
 } from "lucide-react";
 import { LogEntry } from "../services/Auditoria.service";
 
@@ -25,8 +24,8 @@ export function Auditoria_Logs({ logs, onVoltar }: AuditoriaLogsProps) {
   const logsFiltrados = useMemo(() => {
     return logs.filter((log) => {
       const textoMatch =
-        log.descricao.toLowerCase().includes(pesquisa.toLowerCase()) ||
-        log.detalhes.toLowerCase().includes(pesquisa.toLowerCase());
+        (log.descricao || "").toLowerCase().includes(pesquisa.toLowerCase()) ||
+        (log.detalhes || "").toLowerCase().includes(pesquisa.toLowerCase());
 
       const atorMatch = ator === "TODOS" || log.ator === ator;
       const dataMatch = !data || log.data === data;
@@ -39,7 +38,7 @@ export function Auditoria_Logs({ logs, onVoltar }: AuditoriaLogsProps) {
 
   const logsPaginados = logsFiltrados.slice(
     (pagina - 1) * LOGS_POR_PAGINA,
-    pagina * LOGS_POR_PAGINA
+    pagina * LOGS_POR_PAGINA,
   );
 
   return (
@@ -65,7 +64,7 @@ export function Auditoria_Logs({ logs, onVoltar }: AuditoriaLogsProps) {
       </div>
 
       {/* FILTROS */}
-      <div className="p-4 sm:p-6  flex flex-wrap gap-4">
+      <div className="p-4 sm:p-6  flex flex-wrap gap-4 text-black">
         <div className="relative flex-1 min-w-[220px]">
           <Search className="absolute left-4 top-3 text-gray-400" size={18} />
           <input
@@ -113,12 +112,13 @@ export function Auditoria_Logs({ logs, onVoltar }: AuditoriaLogsProps) {
         {logsPaginados.map((log) => (
           <div
             key={log.id}
-            className="p-4 rounded-2xl border border-gray-100 hover:shadow-md  transition flex flex-col sm:flex-row gap-4"
+            className="p-4 rounded-2xl border border-gray-100 text-black hover:shadow-md transition flex flex-col sm:flex-row gap-4 bg-gray-50"
           >
             <div className="min-w-[80px] text-center sm:text-left">
-              <p className="text-[10px] text-gray-400">{log.data}</p>
+              {/* Adicionei 'Data N/D' para você ver se o campo está vindo vazio */}
+              <p className="text-[10px]">{log.data || "Data N/D"}</p>
               <p className="text-sm font-mono font-bold text-[#b5820e]">
-                {log.hora}
+                {log.hora || "00:00"}
               </p>
             </div>
 
@@ -127,15 +127,18 @@ export function Auditoria_Logs({ logs, onVoltar }: AuditoriaLogsProps) {
                 className={`text-[9px] px-2 py-1 rounded font-black uppercase ${
                   log.ator === "ADMIN"
                     ? "bg-black text-[#b5820e]"
-                    : log.ator === "SISTEMA"
-                    ? "bg-blue-100 text-blue-600"
                     : "bg-gray-200 text-gray-600"
                 }`}
               >
-                {log.ator}
+                {log.ator || "SEM ATOR"}
               </span>
-              <p className="font-bold text-sm mt-1">{log.descricao}</p>
-              <p className="text-xs text-gray-500 font-mono">{log.detalhes}</p>
+              {/* Se aparecer "Sem descrição", você sabe que o nome da propriedade está errado */}
+              <p className="font-bold text-sm mt-1">
+                {log.descricao || "Sem descrição disponível"}
+              </p>
+              <p className="text-xs text-gray-500 font-mono">
+                {log.detalhes || "Sem detalhes"}
+              </p>
             </div>
           </div>
         ))}

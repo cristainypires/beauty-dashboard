@@ -8,7 +8,8 @@ export interface AgendaItemProps {
   servico: string;
   data: string;
   hora: string;
-  status: "Confirmado" | "Pendente" | "Cancelado" | "Remarcado" | "Concluído";
+  
+  status: "confirmado" | "pendente" | "cancelado" | "reagendado" | "concluido";
   obs?: string;
   clickable?: boolean;
   onClienteClick: () => void;
@@ -17,23 +18,20 @@ export interface AgendaItemProps {
   onCancelar: () => void;
 }
 
-
-
 function statusClass(status: AgendaItemProps["status"]) {
   switch (status) {
-    case "Confirmado":
+    case "confirmado":
       return "bg-green-100 text-green-700";
-    case "Pendente":
+    case "pendente":
       return "bg-yellow-100 text-yellow-700";
-    case "Cancelado":
+    case "cancelado":
       return "bg-red-100 text-red-700";
-    case "Remarcado":
+    case "reagendado":
       return "bg-blue-100 text-blue-700";
-    case "Concluído":
+    case "concluido":
       return "bg-purple-100 text-purple-700";
     default:
       return "bg-gray-100 text-gray-700";
-
   }
 }
 
@@ -45,13 +43,20 @@ export function Agenda_Item({
   telefone,
   status,
   obs,
+  
   clickable = true,
   onItemClick,
   onClienteClick,
   onRemarcar,
   onCancelar,
 }: AgendaItemProps) {
-  const podeAlterar = status === "Confirmado";
+  const podeAlterar = status === "confirmado";
+
+  // Valores padrão para campos nulos ou vazios
+  const clienteLabel = cliente && cliente.trim() ? cliente : "Sem nome";
+  const telefoneLabel = telefone && telefone.trim() ? telefone : "Sem telefone";
+  const servicoLabel = servico && servico.trim() ? servico : "Sem serviço";
+  const statusLabel = status && status.trim() ? status : "Sem status";
 
   return (
     <div className="group flex flex-col md:flex-row items-start md:items-center justify-between p-2 sm:p-6 bg-gradient-to-br from-[#eed953]/20 via-white to-[#eed953]/20 rounded-2xl md:rounded-[2rem] border border-transparent hover:border-[#b5820e]/20 transition-all gap-4 shadow-sm w-full">
@@ -75,44 +80,38 @@ export function Agenda_Item({
           </span>
         </div>
 
-        {/* CLIENTE */}
+        {/* CLIENTE, TELEFONE E SERVIÇO VISÍVEIS */}
         <div
-          className={`flex-1 p-3 sm:p-4 rounded-xl transition-all duration-300
-            ${clickable ? "cursor-pointer " : "cursor-default"}
-          `}
+          className={`flex-1 p-3 sm:p-4 rounded-xl transition-all duration-300 ${clickable ? "cursor-pointer " : "cursor-default"}`}
           onClick={clickable ? onClienteClick : undefined}
         >
-          <div className="flex items-center gap-2 sm:gap-3">
+          <div className="flex items-center gap-2 sm:gap-3 mb-1">
             <User size={20} className="text-[#b5820e]" />
-            <h3
-              onClick={(e) => {
-                e.stopPropagation(); // 🔥 ISTO IMPEDE O CLIQUE DO CARD
-                onClienteClick();
-              }}
-              className="text-sm sm:text-lg font-bold text-black cursor-pointer hover:underline"
-            >
-              {cliente}
-            </h3>
+            <span className="text-sm sm:text-lg font-bold text-black">
+              {clienteLabel}
+            </span>
           </div>
-
-          <p className="text-[10px] sm:text-xs text-gray-500 font-medium mt-1">
-            📞 {telefone}
-          </p>
-          <p className="text-[10px] sm:text-xs text-gray-500 font-semibold uppercase tracking-wide mt-1">
-            {servico}
-          </p>
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-[10px] sm:text-xs text-gray-500 font-medium">
+              📞 {telefoneLabel}
+            </span>
+          </div>
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-[10px] sm:text-xs text-gray-500 font-semibold uppercase tracking-wide">
+              {servicoLabel}
+            </span>
+          </div>
           {obs && (
             <p className="text-[10px] text-blue-500 mt-2 italic">{obs}</p>
           )}
         </div>
-
         {/* STATUS */}
         <span
           className={`text-[10px] uppercase font-bold px-2 sm:px-3 py-1 rounded-full ${statusClass(
-            status
+            status,
           )}`}
         >
-          {status}
+          {statusLabel}
         </span>
       </div>
 

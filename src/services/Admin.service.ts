@@ -14,8 +14,16 @@ type PromocaoPayload = {
 // =====================
 // Listar todos os serviços
 export const listarServicos = async () => {
-  const res = await api.get("/admin/servicos");
-  return res.data;
+  try {
+    const res = await api.get("/admin/servicos");
+    return res.data;
+  } catch (error: any) {
+    if (error.response?.status === 404) {
+      console.warn("[FALLBACK] Rota /admin/servicos não encontrada. Retornando dados vazios.");
+      return [];
+    }
+    throw error;
+  }
 };
 
 // Criar novo serviço
@@ -41,8 +49,16 @@ export const removerServico = async (id: number) => {
 // FUNCIONÁRIOS
 // =====================
 export const listarFuncionarios = async () => {
-  const res = await api.get("/admin/funcionarios");
-  return res.data;
+  try {
+    const res = await api.get("/admin/funcionarios");
+    return res.data;
+  } catch (error: any) {
+    if (error.response?.status === 404) {
+      console.warn("[FALLBACK] Rota /admin/funcionarios não encontrada. Retornando dados vazios.");
+      return [];
+    }
+    throw error;
+  }
 };
 
 export const criarFuncionario = async (data: any) => {
@@ -67,8 +83,16 @@ export const removerFuncionario = async (id: number) => {
 // CLIENTES
 // =====================
 export const listarClientes = async () => {
-  const res = await api.get("/admin/clientes");
-  return res.data;
+  try {
+    const res = await api.get("/admin/clientes");
+    return res.data;
+  } catch (error: any) {
+    if (error.response?.status === 404) {
+      console.warn("[FALLBACK] Rota /admin/clientes não encontrada. Retornando dados vazios.");
+      return [];
+    }
+    throw error;
+  }
 };
 
 export const desativarCliente = async (id: number) => {
@@ -87,8 +111,17 @@ export const ativarCliente = async (id: number) => {
 
 // No seu Admin.service.ts - use sempre o 'api' que criamos
 export const listarAgendamentos = async () => {
-  const res = await api.get("/admin/agendamentos");
-  return res.data;
+  try {
+    const res = await api.get("/admin/agendamentos");
+    return res.data;
+  } catch (error: any) {
+    // Fallback para dados mock se a rota não existir
+    if (error.response?.status === 404) {
+      console.warn("[FALLBACK] Rota /admin/agendamentos não encontrada. Retornando dados mock.");
+      return [];
+    }
+    throw error;
+  }
 };
 
 export const cancelarAgendamento = async (id: number) => {

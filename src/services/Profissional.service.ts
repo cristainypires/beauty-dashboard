@@ -4,8 +4,13 @@ import api from "./api";
 export const ProfissionalService = {
   // Agenda de hoje e futura
   listarMinhaAgenda: async () => {
-    const res = await api.get("/funcionario/listar-agendamentos");
-    return res.data;
+    try {
+      const res = await api.get("/funcionario/listar-agendamentos");
+      return res.data;
+    } catch (error: any) {
+      console.error("ProfissionalService.listarMinhaAgenda erro:", error?.response?.data || error.message || error);
+      throw error;
+    }
   },
 
   // Histórico (passados)

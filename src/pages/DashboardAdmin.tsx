@@ -78,7 +78,7 @@ export interface Agendamento {
   data: string;
   hora: string;
   telefone?: string;
-  status: "Confirmado" | "Pendente" | "Cancelado" | "Remarcado";
+  status: "confirmado" | "pendente" | "cancelado" | "reagendado" | "concluido";
 }
 
 interface Servico {
@@ -108,9 +108,33 @@ export function DashboardAdmin() {
     try {
       setLoading(true);
       const dados = await listarAgendamentos();
-      setAgendamentos(dados);
+
+      // Mapear dados do backend para o formato esperado
+      const agendamentosArray = Array.isArray(dados)
+        ? dados
+        : dados?.data || [];
+
+      const agendamentosFormatados = agendamentosArray.map((item: any) => {
+        const inicio = new Date(item.data_hora_inicio);
+        const data = inicio.toLocaleDateString("sv-SE"); // formato ISO local
+
+        return {
+          id: item.id,
+          cliente: item.cliente_nome || item.cliente || "Sem nome",
+          telefone: item.cliente_telefone || item.numero_telefone || "",
+          servico: item.nome_servico || item.servico || "",
+          profissional: item.funcionario_nome || item.profissional || "",
+          status: (item.status || "pendente").toLowerCase(),
+          data: inicio.toISOString().split("T")[0],
+          hora: inicio.toISOString().split("T")[1].slice(0, 5),
+        };
+      });
+
+      setAgendamentos(agendamentosFormatados);
+      console.log("[DEBUG] Agendamentos formatados:", agendamentosFormatados);
     } catch (error) {
       console.error("Erro ao buscar agendamentos:", error);
+      setAgendamentos([]);
     } finally {
       setLoading(false);
     }
@@ -174,9 +198,25 @@ export function DashboardAdmin() {
   const carregarClientes = async () => {
     try {
       const dados = await listarClientes();
-      setClientes(dados);
+
+      // Mapear dados do backend para o formato esperado
+      const clientesArray = Array.isArray(dados) ? dados : dados?.data || [];
+
+      const clientesFormatados = clientesArray.map((item: any) => ({
+        id: item.id,
+        nome: item.usuario?.nome || item.nome || "Sem nome",
+        apelido: item.usuario?.apelido || item.apelido || "",
+        email: item.usuario?.email || item.email || "",
+        telefone: item.usuario?.numero_telefone || item.telefone || "",
+        ativo: item.usuario?.ativo !== false && item.ativo !== false,
+        desde: item.criado_em || new Date().toISOString().split("T")[0],
+      }));
+
+      setClientes(clientesFormatados);
+      console.log("[DEBUG] Clientes formatados:", clientesFormatados);
     } catch (error) {
       console.error("Erro ao buscar clientes:", error);
+      setClientes([]);
     }
   };
 
@@ -216,9 +256,27 @@ export function DashboardAdmin() {
   const carregarFuncionarios = async () => {
     try {
       const dados = await listarFuncionarios();
-      setFuncionarios(dados);
+
+      // Mapear dados do backend para o formato esperado
+      const funcionariosArray = Array.isArray(dados)
+        ? dados
+        : dados?.data || [];
+
+      const funcionariosFormatados = funcionariosArray.map((item: any) => ({
+        id: item.id,
+        nome: item.usuario?.nome || item.nome || "Sem nome",
+        especialidade: item.funcao_especialidade || item.especialidade || "",
+        email: item.usuario?.email || item.email || "",
+        telefone: item.usuario?.numero_telefone || item.telefone || "",
+        nascimento: item.usuario?.data_nascimento || item.nascimento || "",
+        status: item.ativo !== false ? "Ativo" : "Inativo",
+      }));
+
+      setFuncionarios(funcionariosFormatados);
+      console.log("[DEBUG] Funcionários formatados:", funcionariosFormatados);
     } catch (error) {
       console.error("Erro ao carregar funcionários:", error);
+      setFuncionarios([]);
     }
   };
 
@@ -244,9 +302,23 @@ export function DashboardAdmin() {
   const carregarServicos = async () => {
     try {
       const dados = await listarServicos();
-      setServicos(dados);
+
+      // Mapear dados do backend para o formato esperado
+      const servicosArray = Array.isArray(dados) ? dados : dados?.data || [];
+
+      const servicosFormatados = servicosArray.map((item: any) => ({
+        id: item.id,
+        nome: item.nome_servico || item.nome || "",
+        duracao: item.duracao_minutos || item.duracao || 0,
+        preco: item.preco || 0,
+        ativo: item.ativo !== false,
+      }));
+
+      setServicos(servicosFormatados);
+      console.log("[DEBUG] Serviços formatados:", servicosFormatados);
     } catch (error) {
       console.error("Erro ao carregar serviços:", error);
+      setServicos([]);
     }
   };
 
@@ -274,11 +346,23 @@ export function DashboardAdmin() {
   ///Promocoes
   // ESTADOS
   const [promocoes, setPromocoes] = useState<Promocao[]>([]);
+  const formatDate = (dateStr: string) => new Date(dateStr + "T00:00:00");
 
   const carregarPromocoes = async () => {
     try {
       const dados = await PromocaoService.listar();
-      setPromocoes(dados);
+      const promosArray = Array.isArray(dados) ? dados : dados?.data || [];
+
+      // Formata os campos para garantir que o componente receba o que espera
+      const formatadas = promosArray.map((p: any) => ({
+        ...p,
+        // Se no banco o nome for diferente, ajuste aqui:
+        titulo: p.titulo || p.nome || "Promoção Sem Nome",
+        validade: p.validade || p.data_fim || p.data_validade,
+      }));
+
+      setPromocoes(formatadas);
+      console.log("[DEBUG] Promoções formatadas:", formatadas);
     } catch (error) {
       console.error("Erro ao carregar promoções:", error);
     }
@@ -309,9 +393,7 @@ export function DashboardAdmin() {
   };
 
   useEffect(() => {
-    if (view === "promocoes") {
-      carregarPromocoes();
-    }
+    carregarPromocoes();
   }, [view]);
 
   ////////////////////////////
@@ -326,9 +408,7 @@ export function DashboardAdmin() {
     }
   };
   useEffect(() => {
-    if (view === "logs") {
-      carregarAuditoria();
-    }
+    carregarAuditoria();
   }, [view]);
 
   const [showServicoModal, setShowServicoModal] = useState(false);
@@ -346,11 +426,20 @@ export function DashboardAdmin() {
     return dataHoraA.getTime() - dataHoraB.getTime();
   };
 
-  const isHojeOuFuturo = (data: string, hora: string) => {
-    const agora = new Date();
-    const agendamento = new Date(`${data}T${hora}`);
-    return agendamento >= agora;
+  /////////////////////////////////////////////////
+  /////////
+
+  const isHoje = (data: string) => {
+    const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0);
+
+    const dataAgendamento = new Date(data);
+    dataAgendamento.setHours(0, 0, 0, 0);
+
+    return dataAgendamento.getTime() === hoje.getTime();
   };
+
+  const agendamentosHoje = agendamentos.filter((item) => isHoje(item.data));
 
   const precoServico: Record<string, number> = {
     "Limpeza de Pele": 2500,
@@ -364,12 +453,6 @@ export function DashboardAdmin() {
 
   // Data de hoje
   const hoje = new Date();
-  hoje.setHours(0, 0, 0, 0);
-
-  // 🔹 Agendamentos de hoje
-  const agendamentosHoje = agendamentos.filter((item) =>
-    isHojeOuFuturo(item.data, item.hora)
-  );
 
   const clientesUnicos = new Set(agendamentos.map((item) => item.cliente));
 
@@ -381,14 +464,53 @@ export function DashboardAdmin() {
   const servicoMaisPopular =
     Object.entries(contagemServicos).sort((a, b) => b[1] - a[1])[0]?.[0] || "—";
 
-  const faturamentoMensal = agendamentos.reduce((total, item) => {
-    // Procura o serviço na lista que veio do banco
-    const servicoEncontrado = servicos.find((s) => s.nome === item.servico);
-    // Se encontrou, usa o preço do banco, senão usa 0
-    const valor = servicoEncontrado ? Number(servicoEncontrado.preco) : 0;
-    return total + valor;
-  }, 0);
+  const faturamentoDiario = React.useMemo(() => {
+    if (agendamentos.length === 0 || servicos.length === 0) return 0;
+
+    const hoje = new Date();
+
+    return agendamentos
+      .filter((item) => {
+        if (item.status.toLowerCase() !== "concluido") return false;
+
+        const dataAgendamento = new Date(item.data);
+        // Comparando dia, mês e ano
+        return (
+          dataAgendamento.getDate() === hoje.getDate() &&
+          dataAgendamento.getMonth() === hoje.getMonth() &&
+          dataAgendamento.getFullYear() === hoje.getFullYear()
+        );
+      })
+      .reduce((total, item) => {
+        const servicoEncontrado = servicos.find(
+          (s) =>
+            s.nome.toLowerCase().trim() === item.servico.toLowerCase().trim(),
+        );
+        if (servicoEncontrado) {
+          console.log(
+            "[DEBUG] Somando serviço diário:",
+            item.servico,
+            "Valor:",
+            servicoEncontrado.preco,
+          );
+        }
+        return (
+          total + (servicoEncontrado ? Number(servicoEncontrado.preco) : 0)
+        );
+      }, 0);
+  }, [agendamentos, servicos]);
+
   const totalFuncionarios = funcionarios.length;
+
+  const parseDate = (dateStr: any) => {
+    if (!dateStr) return null;
+
+    // Tenta criar o objeto Date diretamente da string
+    const d = new Date(dateStr);
+
+    // Verifica se a data é válida
+    return isNaN(d.getTime()) ? null : d;
+  };
 
   return (
     <div className="min-h-screen bg-white p-4 sm:p-8">
@@ -432,7 +554,7 @@ export function DashboardAdmin() {
             <StatCard
               onClick={() => setView("clientes")}
               title="Clientes Ativos"
-              value={clientesUnicos.size}
+              value={clientes.filter((c) => c.ativo).length}
               icon={<Users className="text-blue-500" />}
               color="bg-blue-50"
             />
@@ -446,11 +568,12 @@ export function DashboardAdmin() {
             />
             <StatCard
               onClick={() => setView("financeiro")}
-              title="Faturamento Mensal"
-              value={`${faturamentoMensal.toLocaleString()} CVE`}
+              title="Faturamento Diário"
+              value={`${faturamentoDiario.toLocaleString()} CVE`}
               icon={<DollarSign className="text-[#b5820e]" />}
               color="bg-amber-50"
             />
+
             <StatCard
               onClick={() => setView("popularidade_servicos")}
               title="Serviço Mais Procurado"
@@ -479,7 +602,7 @@ export function DashboardAdmin() {
                 {loading ? (
                   <p>A carregar agendamentos...</p>
                 ) : (
-                  agendamentos
+                  agendamentosHoje
                     .filter((item) => {
                       const hoje = new Date();
                       hoje.setHours(0, 0, 0, 0);
@@ -662,7 +785,6 @@ export function DashboardAdmin() {
                     Nenhuma promoção registada.
                   </p>
                 ) : (
-                  // Exibimos apenas as 2 promoções mais recentes na Home
                   promocoes.slice(0, 2).map((promo) => (
                     <div
                       key={promo.id}
@@ -674,7 +796,9 @@ export function DashboardAdmin() {
                         </p>
                         <p className="text-[8px] sm:text-[10px] text-gray-400">
                           Válido até{" "}
-                          {new Date(promo.validade).toLocaleDateString("pt-PT")}
+                          {parseDate(promo.validade)?.toLocaleDateString(
+                            "pt-PT",
+                          ) || "Data não definida"}
                         </p>
                       </div>
 
@@ -862,13 +986,13 @@ function ServiceBadge({ name, count }: ServiceBadgeProps) {
 
 function statusClass(status: Agendamento["status"]) {
   switch (status) {
-    case "Confirmado":
+    case "confirmado":
       return "bg-green-100 text-green-600";
-    case "Pendente":
+    case "pendente":
       return "bg-yellow-100 text-yellow-600";
-    case "Cancelado":
+    case "cancelado":
       return "bg-red-100 text-red-600";
-    case "Remarcado":
+    case "reagendado":
       return "bg-blue-100 text-blue-600";
     default:
       return "bg-gray-100 text-gray-600";
