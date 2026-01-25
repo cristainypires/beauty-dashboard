@@ -1,5 +1,5 @@
 // src/pages/DashboardAdmin.tsx
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 
 import {
   listarAgendamentos,
@@ -45,6 +45,17 @@ import { Popularidade_Servicos } from "../components/Popularidade_Servicos";
 import { Promocoes_Admin } from "../components/Promocoes_Admin";
 import { Agenda_Item } from "../components/Agenda_Item";
 
+
+// Configuração de Tempo (Sincronização Cabo Verde)
+import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc";
+import timezone from "dayjs/plugin/timezone";
+
+dayjs.extend(utc);
+dayjs.extend(timezone);
+const FUSO_CABO_VERDE = "Atlantic/Cape_Verde";
+
+
 // =====================
 // TIPOS
 // =====================
@@ -77,6 +88,8 @@ export interface Agendamento {
   profissional: string;
   data: string;
   hora: string;
+  dataISO: string;
+  timestamp: number;
   telefone?: string;
   status: "confirmado" | "pendente" | "cancelado" | "reagendado" | "concluido";
 }
@@ -104,41 +117,58 @@ export function DashboardAdmin() {
   const [loading, setLoading] = useState(true);
 
   // 2. Função para carregar agendamentos do Back-end
-  const carregarAgendamentos = async () => {
-    try {
-      setLoading(true);
-      const dados = await listarAgendamentos();
+   const hojeISO = useMemo(() => dayjs().tz(FUSO_CABO_VERDE).format("YYYY-MM-DD"), []);
 
-      // Mapear dados do backend para o formato esperado
-      const agendamentosArray = Array.isArray(dados)
-        ? dados
-        : dados?.data || [];
+const carregarAgendamentos = async () => {
+  try {
+    setLoading(true);
+    const dados = await listarAgendamentos();
+    const agendamentosArray = Array.isArray(dados) ? dados : dados?.data || [];
 
-      const agendamentosFormatados = agendamentosArray.map((item: any) => {
-        const inicio = new Date(item.data_hora_inicio);
-        const data = inicio.toLocaleDateString("sv-SE"); // formato ISO local
+    const formatados = agendamentosArray
+      .map((item: any) => {
+        if (!item.data_hora_inicio) return null;
+
+        // ✅ LÓGICA IDÊNTICA AO PROFISSIONAL:
+        // Interpreta o que vem do banco como UTC e converte para Cabo Verde
+  const dtCVE = dayjs.utc(item.data_hora_inicio).tz(FUSO_CABO_VERDE).subtract(1, "hour");
 
         return {
           id: item.id,
-          cliente: item.cliente_nome || item.cliente || "Sem nome",
-          telefone: item.cliente_telefone || item.numero_telefone || "",
-          servico: item.nome_servico || item.servico || "",
-          profissional: item.funcionario_nome || item.profissional || "",
-          status: (item.status || "pendente").toLowerCase(),
-          data: inicio.toISOString().split("T")[0],
-          hora: inicio.toISOString().split("T")[1].slice(0, 5),
+          cliente: item.cliente_nome || item.nome_cliente || "Sem nome",
+          servico: item.nome_servico || "",
+          profissional: item.profissional_nome || "",
+          // Usamos dataIso (com 'o' minúsculo) para parear com o que você tem no Profissional
+          dataIso: dtCVE.format("YYYY-MM-DD"), 
+          data: dtCVE.toDate(),
+          hora: dtCVE.format("HH:mm"),
+          timestamp: dtCVE.valueOf(),
+          telefone: item.cliente_telefone || item.telefone_cliente || "",
+          status: (item.status || "pendente")
+            .toLowerCase()
+            .trim()
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, ""), // Remove acentos como no profissional
         };
-      });
+      })
+      .filter(Boolean);
 
-      setAgendamentos(agendamentosFormatados);
-      console.log("[DEBUG] Agendamentos formatados:", agendamentosFormatados);
-    } catch (error) {
-      console.error("Erro ao buscar agendamentos:", error);
-      setAgendamentos([]);
-    } finally {
-      setLoading(false);
-    }
-  };
+    // Ordenação por horário real (timestamp)
+    const ordenados = formatados.sort((a: any, b: any) => a.timestamp - b.timestamp);
+    setAgendamentos(ordenados);
+  } catch (error) {
+    console.error("Erro ao carregar agendamentos:", error);
+  } finally {
+    setLoading(false);
+  }
+};
+
+ // Filtrar agendamentos de hoje baseado na data de Cabo Verde
+const agendamentosHoje = useMemo(() => {
+  return agendamentos.filter((item: any) => item.dataIso === hojeISO);
+}, [agendamentos, hojeISO]);
+
+
 
   // 3. Carregar assim que o componente montar
   useEffect(() => {
@@ -420,26 +450,31 @@ export function DashboardAdmin() {
     setView("novo-funcionario");
   };
 
-  const ordenarPorDataHora = (a: Agendamento, b: Agendamento) => {
-    const dataHoraA = new Date(`${a.data}T${a.hora}`);
-    const dataHoraB = new Date(`${b.data}T${b.hora}`);
-    return dataHoraA.getTime() - dataHoraB.getTime();
-  };
+
+
 
   /////////////////////////////////////////////////
   /////////
+const normalizarDataCVE = (dataHora: string) => {
+  const d = dayjs.utc(dataHora).tz(FUSO_CABO_VERDE);
 
-  const isHoje = (data: string) => {
-    const hoje = new Date();
-    hoje.setHours(0, 0, 0, 0);
-
-    const dataAgendamento = new Date(data);
-    dataAgendamento.setHours(0, 0, 0, 0);
-
-    return dataAgendamento.getTime() === hoje.getTime();
+  return {
+    dataISO: d.format("YYYY-MM-DD"),
+    data: d.format("YYYY-MM-DDTHH:mm:ss"),
+    hora: d.format("HH:mm"),
+    timestamp: d.valueOf(),
   };
+};
 
-  const agendamentosHoje = agendamentos.filter((item) => isHoje(item.data));
+const ordenarPorDataHoraCVE = (a: Agendamento, b: Agendamento) => {
+  return a.timestamp - b.timestamp;
+};
+
+
+
+
+
+
 
   const precoServico: Record<string, number> = {
     "Limpeza de Pele": 2500,
@@ -452,7 +487,6 @@ export function DashboardAdmin() {
   // =====================
 
   // Data de hoje
-  const hoje = new Date();
 
   const clientesUnicos = new Set(agendamentos.map((item) => item.cliente));
 
@@ -464,41 +498,14 @@ export function DashboardAdmin() {
   const servicoMaisPopular =
     Object.entries(contagemServicos).sort((a, b) => b[1] - a[1])[0]?.[0] || "—";
 
-  const faturamentoDiario = React.useMemo(() => {
-    if (agendamentos.length === 0 || servicos.length === 0) return 0;
-
-    const hoje = new Date();
-
+   const faturamentoDiario = useMemo(() => {
     return agendamentos
-      .filter((item) => {
-        if (item.status.toLowerCase() !== "concluido") return false;
-
-        const dataAgendamento = new Date(item.data);
-        // Comparando dia, mês e ano
-        return (
-          dataAgendamento.getDate() === hoje.getDate() &&
-          dataAgendamento.getMonth() === hoje.getMonth() &&
-          dataAgendamento.getFullYear() === hoje.getFullYear()
-        );
-      })
+      .filter(item => item.dataISO === hojeISO && item.status === "concluido")
       .reduce((total, item) => {
-        const servicoEncontrado = servicos.find(
-          (s) =>
-            s.nome.toLowerCase().trim() === item.servico.toLowerCase().trim(),
-        );
-        if (servicoEncontrado) {
-          console.log(
-            "[DEBUG] Somando serviço diário:",
-            item.servico,
-            "Valor:",
-            servicoEncontrado.preco,
-          );
-        }
-        return (
-          total + (servicoEncontrado ? Number(servicoEncontrado.preco) : 0)
-        );
+        const s = servicos.find(serv => serv.nome === item.servico);
+        return total + (s ? Number(s.preco) : 0);
       }, 0);
-  }, [agendamentos, servicos]);
+  }, [agendamentos, servicos, hojeISO]);
 
   const totalFuncionarios = funcionarios.length;
 
@@ -598,40 +605,29 @@ export function DashboardAdmin() {
                   Ver Tudo →
                 </button>
               </div>
-              <div className="space-y-2 sm:space-y-4">
-                {loading ? (
-                  <p>A carregar agendamentos...</p>
-                ) : (
-                  agendamentosHoje
-                    .filter((item) => {
-                      const hoje = new Date();
-                      hoje.setHours(0, 0, 0, 0);
-                      const dataAgendamento = new Date(item.data);
-                      dataAgendamento.setHours(0, 0, 0, 0);
-                      return dataAgendamento >= hoje;
-                    })
-                    .sort(ordenarPorDataHora)
-                    .slice(0, 5) // Mostra apenas os 5 primeiros na Home
-                    .map((item) => (
-                      <Agenda_Item
-                        key={item.id}
-                        id={item.id}
-                        cliente={item.cliente}
-                        telefone={item.telefone || ""}
-                        servico={`${item.servico} • ${item.profissional}`}
-                        data={item.data}
-                        hora={item.hora}
-                        status={item.status}
-                        clickable={true}
-                        onItemClick={() => setView("todos-agendamentos")}
-                        onClienteClick={() => setView("clientes")}
-                        // LIGAÇÃO COM O BACK-END AQUI:
-                        onCancelar={() => handleCancelar(item.id)}
-                        onRemarcar={() => handleReagendar(item.id)}
-                      />
-                    ))
-                )}
-              </div>
+               <div className="space-y-4">
+  {loading ? (
+    <p className="text-gray-400 italic text-center py-10">Sincronizando fuso horário...</p>
+  ) : agendamentosHoje.length > 0 ? (
+    agendamentosHoje.slice(0, 5).map((item: any) => (
+      <Agenda_Item
+        key={item.id}
+        {...item}
+        // Garanta que o nome da prop de data coincida com o que o Agenda_Item espera
+        dataIso={item.dataIso} 
+        servico={`${item.servico} • ${item.profissional}`}
+        clickable={true}
+        onItemClick={() => setView("todos-agendamentos")}
+        onCancelar={() => handleCancelar(item.id)}
+        onRemarcar={() => handleReagendar(item.id)}
+      />
+    ))
+  ) : (
+    <div className="p-10 border-2 border-dashed rounded-3xl text-center text-gray-400 italic">
+      Nenhum agendamento para hoje ({dayjs().tz(FUSO_CABO_VERDE).format("DD/MM/YYYY")}).
+    </div>
+  )}
+</div>
             </div>
 
             {/* Serviços Disponíveis */}

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   Calendar,
   Clock,
@@ -6,644 +6,406 @@ import {
   Star,
   Plus,
   History,
+  CheckCircle2,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 import { FuncionarioService } from "../services/Funcionario.service";
+import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc.js";
+import timezone from "dayjs/plugin/timezone.js";
+
+
+
 
 // Imports de Componentes
-import { Agenda_Item, AgendaItemProps } from "../components/Agenda_Item";
+import { Agenda_Item } from "../components/Agenda_Item";
 import { Gestao_Disponibilidade } from "../components/Gestao_Disponibilidade";
 import { Form_Agendamento_Funcionario } from "../components/Form_Agendamento_Funcionario";
 import { Lista_Clientes } from "../components/Lista_Clientes";
-import { Cliente } from "../components/Lista_Clientes";
-import { Agendamento } from "./DashboardAdmin";
-import {
-  safeArray,
-  parseDateSafe,
-  toDateParts,
-  ensureAgendaItem,
-} from "../utils/dataHelpers";
+import { safeArray } from "../utils/dataHelpers";
 
-// =====================
-// DASHBOARD FUNCIONÁRIO
-// =====================
 export function DashboardFuncionario() {
   const [view, setView] = useState<
-    | "home"
-    | "agenda"
-    | "historico"
-    | "disponibilidade"
-    | "novo"
-    | "Lista_clientes"
+    "home" | "agenda" | "historico" | "disponibilidade" | "novo"
   >("home");
-  interface AgendamentoBackend {
-    id: number;
-    cliente_nome: string; // usuario.nome
-    cliente_apelido: string; // usuario.apelido
-    cliente_email: string; // usuario.email
-    cliente_telefone: string; // usuario.numero_telefone
-    nome_servico: string; // servico.nome_servico
-    status: string; // status_agendamento.nome
-    data_hora_inicio: string; // agendamento.data_hora_inicio
-    data_hora_fim: string; // agendamento.data_hora_fim
-    duracao_minutos: number; // servico.duracao_minutos
-    preco: string; // servico.preco
-  }
-
-  // 3. Substitua a agenda estática por este estado:
   const [agenda, setAgenda] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Estado para os clientes (também virá do banco)
-  const [clientes, setClientes] = useState<Cliente[]>([]);
+  // Estado para o modal de remarcação
+  const [remarcandoItem, setRemarcandoItem] = useState<any | null>(null);
+  const [novaDataHora, setNovaDataHora] = useState("");
 
-  const navigate = useNavigate();
-  const [filtroCliente, setFiltroCliente] = useState("");
-  const [filtroServico, setFiltroServico] = useState("");
-  const [filtroStatus, setFiltroStatus] = useState<
-    "confirmado" | "pendente" | "cancelado" | "reagendado" | ""
-  >("");
-  const [filtroData, setFiltroData] = useState("");
+  const hojeISO = new Date().toLocaleDateString("sv-SE");
+  const hojeDisplay = new Date().toLocaleDateString("pt-PT");
+dayjs.extend(utc);
+dayjs.extend(timezone);
 
-  const handleAtivarCliente = (id: number) => {
-    setClientes((prev) =>
-      prev.map((c) => (c.id === id ? { ...c, ativo: true } : c))
-    );
-  };
-
-  const handleDesativarCliente = (id: number) => {
-    setClientes((prev) =>
-      prev.map((c) => (c.id === id ? { ...c, ativo: false } : c))
-    );
-  };
-
-  // Dentro do DashboardFuncionario
+const FUSO_CABO_VERDE = "Atlantic/Cape_Verde";
   const carregarDados = async () => {
     try {
       setLoading(true);
-      let dados;
-
-      if (view === "historico") {
-        dados = await FuncionarioService.verMeuHistorico();
-      } else {
-        dados = await FuncionarioService.listarMinhaAgenda();
-      }
-
+      const dados = await FuncionarioService.listarMinhaAgenda();
       const agendaArray = safeArray<any>(dados);
 
-      // Normaliza e protege cada item vindo do backend
-      const agendaFormatada = agendaArray.map((item: any) => ensureAgendaItem(item));
+     const agendaFormatada = agendaArray
+  .map((item: any) => {
+    if (!item.data_hora_inicio) return null;
 
-      // Opcional: filtrar apenas hoje ou futuro como antes
-      const hoje = new Date();
-      hoje.setHours(0, 0, 0, 0);
+    const dataHoraCVE = dayjs
+      .utc(item.data_hora_inicio)
+      .tz(FUSO_CABO_VERDE);
 
-      const agendaFiltrada = agendaFormatada.filter((it) => {
-        const d = parseDateSafe(`${it.data}T${it.hora}`);
-        if (!d) return false;
-        d.setHours(0, 0, 0, 0);
-        return d >= hoje;
-      });
+    return {
+      id: item.id,
+      cliente: item.nome_cliente || "Cliente",
+      telefone: item.telefone_cliente || "",
+      servico: item.profissional_nome
+        ? `${item.nome_servico} • ${item.profissional_nome}`
+        : item.nome_servico,
+      dataISO: dataHoraCVE.format("YYYY-MM-DD"),
+      data: dataHoraCVE.format("YYYY-MM-DDTHH:mm:ss"),
+      hora: dataHoraCVE.format("HH:mm"),
+      timestamp: dataHoraCVE.valueOf(),
+      status: String(item.status || "pendente").toLowerCase().trim(),
+    };
+  })
+  .filter(Boolean);
 
-      console.log("[DEBUG] Dados do backend:", agendaArray);
-      console.log("[DEBUG] Dados formatados:", agendaFormatada);
 
       setAgenda(agendaFormatada);
     } catch (error) {
       console.error("Erro ao carregar dados:", error);
-      setAgenda([]);
     } finally {
       setLoading(false);
     }
   };
 
-  // Carregar sempre que mudar a view
   useEffect(() => {
     carregarDados();
   }, [view]);
 
-  // --- AÇÕES LIGADAS AO BACK-END ---
+  // --- 2. LÓGICA DE FILTRAGEM ---
+  const agendaDeHoje = useMemo(() => {
+    return agenda
+      .filter(
+        (item) =>
+          item.dataISO === hojeISO &&
+          (item.status === "confirmado" || item.status === "reagendado"),
+      )
+      .sort((a, b) => a.timestamp - b.timestamp); // use timestamp para consistência
+  }, [agenda, hojeISO]);
 
+  const proximosAgendamentos = useMemo(() => {
+    return agenda
+      .filter(
+        (item) =>
+          item.dataISO > hojeISO && // só dias futuros
+          (item.status === "confirmado" || item.status === "reagendado"),
+      )
+      .sort((a, b) => a.timestamp - b.timestamp);
+  }, [agenda, hojeISO]);
+
+  const historicoAgendamentos = useMemo(() => {
+    // pega o timestamp da meia-noite de hoje
+    const hojeMeiaNoite = new Date();
+    hojeMeiaNoite.setHours(0, 0, 0, 0); // 00:00:00
+    const limite = hojeMeiaNoite.getTime();
+
+    return agenda
+      .filter(
+        (item) =>
+          item.status.toLowerCase() === "concluido" && // só concluídos
+          item.timestamp < limite, // apenas passados do dia anterior
+      )
+      .sort((a, b) => b.timestamp - a.timestamp); // do mais recente para o mais antigo
+  }, [agenda]);
+
+  // --- 3. AÇÕES ---
   const handleConcluir = async (id: number) => {
     try {
-      await FuncionarioService.concluirServico(id);
-      alert("Serviço concluído com sucesso! 🎉");
-      carregarDados(); // Recarrega a lista
-    } catch (error) {
-      alert("Erro ao concluir serviço.");
+      setLoading(true);
+      const res = await FuncionarioService.concluirServico(id);
+      if (res?.mensagem) {
+        alert(res.mensagem);
+        carregarDados();
+      }
+    } catch (error: any) {
+      alert(error?.response?.data?.erro || "Erro ao concluir o serviço.");
+    } finally {
+      setLoading(false);
     }
   };
-
   const handleCancelar = async (id: number) => {
-    if (window.confirm("Tem certeza que deseja cancelar este agendamento?")) {
-      try {
-        await FuncionarioService.cancelarAgendamento(id);
-        alert("Agendamento cancelado.");
-        carregarDados();
-      } catch (error) {
-        alert("Erro ao cancelar.");
-      }
-    }
-  };
+    if (!window.confirm("Deseja realmente cancelar este agendamento?")) return;
 
-  const handleReagendar = async (id: number) => {
-    const novaData = prompt("Nova Data (AAAA-MM-DD):");
-    const novaHora = prompt("Nova Hora (HH:MM):");
-    if (novaData && novaHora) {
-      try {
-        await FuncionarioService.reagendarAgendamento(id, {
-          data: novaData,
-          hora: novaHora,
-        });
-        alert("Reagendado com sucesso!");
-        carregarDados();
-      } catch (error) {
-        alert("Erro ao reagendar. Verifique a disponibilidade.");
-      }
-    }
-  };
-
-  const handleCriarAgendamento = async (dadosDoForm: any) => {
     try {
-      // 1. Chama o serviço que criamos no ficheiro Funcionario.service.ts
-      // Rota: router.post("/agendamentos", agendamento_Controller.fazer_agendamento);
-      await FuncionarioService.fazerNovoAgendamento(dadosDoForm);
-
-      alert("Agendamento registado com sucesso! 🎉");
-
-      // 2. Volta para a Home
-      setView("home");
-
-      // 3. Recarrega a agenda para o novo agendamento aparecer na lista
-      carregarDados();
-    } catch (error) {
-      console.error("Erro ao criar agendamento:", error);
-      alert(
-        "Erro ao criar agendamento. Verifique se o horário está disponível."
-      );
+      setLoading(true);
+      const res = await FuncionarioService.cancelarAgendamento(id);
+      if (res?.mensagem) {
+        alert(res.mensagem);
+        carregarDados();
+      }
+    } catch (error: any) {
+      alert(error?.response?.data?.erro || "Erro ao cancelar.");
+    } finally {
+      setLoading(false);
     }
   };
 
-  const isHojeOuFuturo = (data: string, hora: string) => {
-    const agora = new Date();
-    const agendamento = parseDateSafe(`${data}T${hora}`);
-    if (!agendamento) return false;
-    return agendamento >= agora;
-  };
+  // Dentro do componente DashboardFuncionario...
 
-  const agendaHojeOuFuturo = agenda
-    .filter((item) => isHojeOuFuturo(item.data, item.hora))
-    .sort((a, b) => {
-      const dtA = new Date(`${a.data}T${a.hora}`);
-      const dtB = new Date(`${b.data}T${b.hora}`);
-      return dtA.getTime() - dtB.getTime();
-    });
-  const [pagina, setPagina] = React.useState(1);
-  const itensPorPagina = 5;
+  const handleReagendar = async () => {
+    if (!novaDataHora) return alert("Selecione a nova data e hora.");
 
-  const totalPaginas = Math.ceil(agendaHojeOuFuturo.length / itensPorPagina);
+    try {
+      // 1. Corrigido para 'reagendarAgendamento' conforme seu Service
+      await FuncionarioService.reagendarAgendamento(remarcandoItem.id, {
+        nova_data_hora: novaDataHora,
+      });
 
-  const agendaPaginada = agendaHojeOuFuturo.slice(
-    (pagina - 1) * itensPorPagina,
-    pagina * itensPorPagina
-  );
-
-  const isAgendamentoPassado = (data: string, hora: string) => {
-    const agora = new Date();
-    const agendamento = parseDateSafe(`${data}T${hora}`);
-    if (!agendamento) return false;
-    return agendamento < agora;
-  };
-
-  const proximosAgendamentos = agenda.filter((item) =>
-    isHojeOuFuturo(item.data, item.hora)
-  );
-
-  const [filtroClienteHist, setFiltroClienteHist] = useState("");
-  const [filtroServicoHist, setFiltroServicoHist] = useState("");
-  const [filtroDataHist, setFiltroDataHist] = useState("");
-  const [filtroStatusHist, setFiltroStatusHist] = useState<
-    "confirmado" | "pendente" | "cancelado" | "reagendado" | ""
-  >("");
-  const ordenarPorDataHora = (
-    a: { data: string; hora: string },
-    b: { data: string; hora: string }
-  ) => {
-    const dataHoraA = new Date(`${a.data}T${a.hora}`);
-    const dataHoraB = new Date(`${b.data}T${b.hora}`);
-    return dataHoraA.getTime() - dataHoraB.getTime();
+      alert("Reagendado com sucesso! ✅");
+      setRemarcandoItem(null);
+      setNovaDataHora("");
+      carregarDados(); // Recarrega a lista
+    } catch (error: any) {
+      console.error(error);
+      alert(error.response?.data?.erro || "Erro ao reagendar.");
+    }
   };
 
   return (
     <div className="min-h-screen bg-white p-6 md:p-10">
-      {/* HEADER LUXO */}
-      <section className="mb-5 flex flex-col md:flex-row justify-between items-start md:items-end border-b border-gray-100 pb-10 gap-6">
+      {/* HEADER */}
+      <section className="mb-10 flex flex-col md:flex-row justify-between items-start md:items-end border-b border-gray-100 pb-10 gap-6">
         <div>
           {view !== "home" && (
-            <div>
-              <button
-                onClick={() => setView("home")}
-                className="flex items-center gap-2 text-[#b5820e] font-bold text-xs uppercase tracking-widest mb-4 hover:underline"
-              >
-                <ChevronLeft size={16} /> Voltar ao Início
-              </button>
-
-              <p className="text-gray-400 italic mt-2 text-lg">
-                "Excelência em cada detalhe, beleza em cada toque. Você é capaz,
-                você consegue."
-              </p>
-            </div>
+            <button
+              onClick={() => setView("home")}
+              className="flex items-center gap-2 text-[#b5820e] font-bold text-xs uppercase mb-4 hover:underline"
+            >
+              <ChevronLeft size={16} /> Voltar ao Início
+            </button>
           )}
-
-          {![
-            "agenda",
-            "historico",
-            "disponibilidade",
-            "novo",
-            "Lista_clientes",
-          ].includes(view) && (
-            <>
-              <h1 className="md:text-4xl text-2xl font-serif font-black tracking-tight text-black">
-                Painel da Recepcionista
-              </h1>
-              <p className="text-gray-400 italic mt-2 text-lg">
-                "Excelência em cada detalhe, beleza em cada toque. Você é capaz,
-                você consegue."
-              </p>
-            </>
-          )}
+          <h1 className="md:text-4xl text-2xl font-serif font-black text-black">
+            {view === "historico"
+              ? "Histórico de Atendimentos"
+              : "Painel da Recepcionista"}
+          </h1>
         </div>
-        {![
-          "agenda",
-          "historico",
-          "disponibilidade",
-          "novo",
-          "Lista_clientes",
-        ].includes(view) && (
-          <div className="flex flex-col items-end">
-            <div className=" text-[#b5820e] px-6 py-2 rounded-xl shadow-lg border-b-2 border-[#b5820e] flex items-end md:items-center gap-3">
-              <Calendar size={14} />
-              <span className="text-xs font-bold uppercase tracking-widest">
-                {new Date().toLocaleDateString("pt-PT", {
-                  day: "2-digit",
-                  month: "long",
-                  year: "numeric",
-                })}
-              </span>
-            </div>
-          </div>
-        )}
+        <div className="bg-amber-50 text-[#b5820e] px-6 py-2 rounded-xl shadow-sm border border-amber-100 flex items-center gap-3">
+          <Calendar size={14} />
+          <span className="text-xs font-bold uppercase">
+            {new Date().toLocaleDateString("pt-PT", {
+              day: "2-digit",
+              month: "long",
+              year: "numeric",
+            })}
+          </span>
+        </div>
       </section>
 
-      {/* RENDERIZAÇÃO: HOME */}
-      {view === "home" && (
+      {loading ? (
+        <div className="flex flex-col items-center justify-center py-20 gap-4">
+          <div className="w-8 h-8 border-4 border-amber-200 border-t-amber-600 rounded-full animate-spin"></div>
+          <p className="text-gray-400 italic">Sincronizando agenda...</p>
+        </div>
+      ) : (
         <>
-          {/* CARDS DE RESUMO */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-7 mb-12">
-            <StatCard
-              title="Próximos Agendamentos"
-              value={loading ? "..." : agenda.length} // Mostra o total real do banco
-              icon={Clock}
-              color="bg-amber-50"
-              onClick={() => setView("agenda")}
-            />
-
-            <StatCard
-              title="Novo Agendamento"
-              value="Criar"
-              icon={Plus}
-              color="bg-gray-50"
-              onClick={() => setView("novo")}
-            />
-            <StatCard
-              title="Histórico"
-              value="Ver"
-              icon={History}
-              color="bg-gray-50"
-              onClick={() => setView("agenda")}
-            />
-            <StatCard
-              title="Avaliação"
-              value="4.9"
-              icon={Star}
-              color="bg-gray-50 text-[#b5820e]"
-            />
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-20">
-            {/* LISTA RÁPIDA DE AGENDA */}
-            <div className="md:col-span-2 space-y-6">
-              <div className=" justify-between items-center mb-4">
-                <h2 className="text-2xl font-black text-black uppercase tracking-tighter italic mb-2">
-                  Agenda de Hoje
-                </h2>
-                <button
+          {/* RENDERIZAÇÃO: HOME */}
+          {view === "home" && (
+            <>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-7 mb-12">
+                <StatCard
+                  title="Agendamentos de Hoje"
+                  value={agendaDeHoje.length}
+                  icon={Clock}
                   onClick={() => setView("agenda")}
-                  className="text-[#b5820e] font-bold text-xs uppercase tracking-widest hover:underline"
-                >
-                  Ver Agenda Completo
-                </button>
+                />
+                <StatCard
+                  title="Agendamentos Futuros"
+                  value={proximosAgendamentos.length}
+                  icon={Clock}
+                  onClick={() => setView("agenda")}
+                />
+                <StatCard
+                  title="Histórico de Agendamentos Passados"
+                  value={historicoAgendamentos.length}
+                  icon={Clock}
+                  onClick={() => setView("historico")}
+                />
+                <StatCard
+                  title="Novo Agendamento"
+                  value="Criar"
+                  icon={Plus}
+                  onClick={() => setView("novo")}
+                />
               </div>
 
-              <div className="space-y-4">
-                {/* Dentro do map da Agenda */}
-                {agendaHojeOuFuturo.map((item) => (
-                  <Agenda_Item
-                    key={item.id}
-                    id={item.id}
-                    cliente={item.cliente}
-                    telefone={item.telefone}
-                    servico={item.servico}
-                    data={item.data}
-                    hora={item.hora}
-                    status={item.status}
-                    obs={item.obs}
-                    onItemClick={() => handleConcluir(item.id)} // Clique no card conclui o serviço
-                    onClienteClick={() => setView("Lista_clientes")}
-                    onRemarcar={() => handleReagendar(item.id)}
-                    onCancelar={() => handleCancelar(item.id)}
-                  />
-                ))}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-20">
+                <div className="md:col-span-2 space-y-6">
+                  <h2 className="text-2xl font-black text-black uppercase italic mb-2">
+                    Agenda de Hoje
+                  </h2>
+                  <span className="text-sm text-[#b5820e] font-bold">
+                    {hojeDisplay}
+                  </span>
 
-                {/* PAGINAÇÃO */}
-                {totalPaginas > 1 && (
-                  <div className="flex justify-center gap-2 mt-4">
+                  <div className="space-y-4">
+                    {agendaDeHoje.length > 0 ? (
+                      agendaDeHoje.map((item) => (
+                        <div key={item.id} className="relative group">
+                          <Agenda_Item
+                            {...item}
+                            onCancelar={() => handleCancelar(item.id)}
+                            onRemarcar={() => setRemarcandoItem(item)}
+                          />
+                          {(item.status === "confirmado" ||
+                            item.status === "reagendado") && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleConcluir(item.id);
+                              }}
+                              className="absolute top-4 right-16 flex items-center gap-2 bg-green-600 text-white px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase hover:bg-green-700 transition-all shadow-md z-10"
+                            >
+                              <CheckCircle2 size={14} /> Concluir
+                            </button>
+                          )}
+                        </div>
+                      ))
+                    ) : (
+                      <div className="p-10 border-2 border-dashed rounded-3xl text-center text-gray-400 italic">
+                        Nenhum atendimento confirmado para hoje ({hojeDisplay}).
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="space-y-8">
+                  <CreateAppointmentCard onClick={() => setView("novo")} />
+                  <div className="bg-black rounded-[2.5rem] p-10 text-white shadow-2xl">
+                    <h3 className="text-xl font-bold text-[#b5820e] mb-4">
+                      Configurar Agenda
+                    </h3>
                     <button
-                      onClick={() => setPagina((prev) => Math.max(prev - 1, 1))}
-                      className="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300"
+                      onClick={() => setView("disponibilidade")}
+                      className="w-full py-5 bg-[#b5820e] text-black rounded-2xl font-black uppercase text-xs"
                     >
-                      Anterior
-                    </button>
-                    <span className="px-3 py-1">
-                      {pagina} / {totalPaginas}
-                    </span>
-                    <button
-                      onClick={() =>
-                        setPagina((prev) => Math.min(prev + 1, totalPaginas))
-                      }
-                      className="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300"
-                    >
-                      Próxima
+                      Ajustar Disponibilidade
                     </button>
                   </div>
-                )}
-              </div>
-            </div>
-
-            {/* SIDEBAR DE ACÇÕES */}
-            <div className="space-y-8">
-              <div className="bg-black rounded-[2.5rem] p-10 md:mb-30 text-white shadow-2xl relative overflow-hidden">
-                <div className="bg-black/10 flex gap-5 group-hover/btn:bg-black/5 p-1 rounded-lg transition-colors md:mb-2">
-                  <Calendar size={27} />
-
-                  <h3 className="text-xl font-bold text-[#b5820e] mb-4 uppercase tracking-widest">
-                    <span className="text-white"> Configurar</span> <br /> Minha
-                    Agenda
-                  </h3>
                 </div>
-                <p className="text-gray-400 text-xs mb-8 leading-relaxed">
-                  Gerencie sua disponibilidade diária, mensal e anual para o
-                  sistema automatizado.
-                </p>
-                <button
-                  onClick={() => setView("disponibilidade")}
-                  className="w-full py-5 bg-[#b5820e] text-black rounded-2xl font-black uppercase text-xs tracking-widest hover:opacity-90 transition shadow-lg"
-                >
-                  Configurar Disponibilidade
-                </button>
               </div>
+            </>
+          )}
 
-              <CreateAppointmentCard onClick={() => setView("novo")} />
+          {/* OUTRAS VIEWS */}
+          {view === "historico" && (
+            <div className="space-y-6">
+              <div className="space-y-4">
+                {historicoAgendamentos.map((item) => (
+                  <Agenda_Item key={item.id} {...item} clickable={false} />
+                ))}
+              </div>
             </div>
-          </div>
+          )}
+
+          {view === "agenda" && (
+            <div className="space-y-6">
+              <h2 className="text-2xl font-black uppercase">
+                Próximos Confirmados
+              </h2>
+              <div className="space-y-4">
+                {proximosAgendamentos.map((item) => (
+                  <div key={item.id} className="relative group">
+                    <Agenda_Item
+                      {...item}
+                      onCancelar={() => handleCancelar(item.id)}
+                    />
+                    <button
+                      onClick={() => handleConcluir(item.id)}
+                      className="absolute top-4 right-16 bg-green-600 text-white px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase z-10"
+                    >
+                      Concluir
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </>
       )}
-      {view === "Lista_clientes" && (
-        <Lista_Clientes
-          clientes={clientes}
-          onVoltar={() => setView("home")}
-          onAtivar={handleAtivarCliente}
-          onDesativar={handleDesativarCliente}
-        />
-      )}
 
-      {/* RENDERIZAÇÃO: OUTRAS TELAS */}
-      {view === "agenda" && (
-        <div className="space-y-6">
-          <h2 className="md:text-3xl text-2xl font-black text-black uppercase tracking-widest mb-6">
-            Agenda Completa
-          </h2>
-
-          {/* FILTROS */}
-          <div className="flex flex-col md:flex-row gap-4 mb-6">
-            <input
-              type="text"
-              placeholder="Pesquisar cliente..."
-              className="flex-1 p-3 rounded-xl border border-gray-200 focus:border-[#b5820e] outline-none"
-              value={filtroCliente}
-              onChange={(e) => setFiltroCliente(e.target.value)}
-            />
-            <input
-              type="text"
-              placeholder="Pesquisar serviço..."
-              className="flex-1 p-3 rounded-xl border border-gray-200 focus:border-[#b5820e] outline-none"
-              value={filtroServico}
-              onChange={(e) => setFiltroServico(e.target.value)}
-            />
-            <select
-              className="p-3 rounded-xl border border-gray-200 focus:border-[#b5820e] outline-none"
-              value={filtroStatusHist}
-              onChange={(e) =>
-                setFiltroStatusHist(
-                  e.target.value as
-                    | "confirmado"
-                    | "pendente"
-                    | "cancelado"
-                    | "reagendado"
-                    | ""
-                )
-              }
-            >
-              <option value="">Todos os Status</option>
-              <option value="confirmado">Confirmado</option>
-              <option value="pendente">Pendente</option>
-              <option value="cancelado">Cancelado</option>
-              <option value="reagendado">Reagendado</option>
-            </select>
-            <input
-              type="date"
-              className="p-3 rounded-xl border border-gray-200 focus:border-[#b5820e] outline-none"
-              value={filtroData}
-              onChange={(e) => setFiltroData(e.target.value)}
-            />
-          </div>
-
-          {/* AGENDA FILTRADA */}
-          {agenda
-            .filter((item) => {
-              const nomeMatch = (item.cliente ?? "")
-                .toLowerCase()
-                .includes(filtroCliente.toLowerCase());
-
-              const servicoMatch = (item.servico ?? "")
-                .toLowerCase()
-                .includes(filtroServico.toLowerCase());
-
-              const statusMatch = filtroStatus
-                ? item.status === filtroStatus
-                : true;
-
-              const dataMatch = filtroData ? item.data === filtroData : true;
-
-              return nomeMatch && servicoMatch && statusMatch && dataMatch;
-            })
-
-            .map((item) => (
-              <Agenda_Item
-                key={item.id}
-                id={item.id}
-                cliente={item.cliente}
-                telefone={item.telefone}
-                servico={item.servico}
-                data={item.data}
-                hora={item.hora}
-                status={item.status}
-                obs={item.obs}
-                onItemClick={() => handleConcluir(item.id)} // Clique no card conclui o serviço
-                onClienteClick={() => setView("Lista_clientes")}
-                onRemarcar={() => handleReagendar(item.id)}
-                onCancelar={() => handleCancelar(item.id)}
-              />
-            ))}
-        </div>
-      )}
-
+      {/* COMPONENTES EXTERNOS */}
       {view === "disponibilidade" && <Gestao_Disponibilidade />}
-
       {view === "novo" && (
         <Form_Agendamento_Funcionario
           onVoltar={() => setView("home")}
-          // Passamos a nossa função handleCriarAgendamento para ser usada no submit do form
-          onSubmit={handleCriarAgendamento}
+          onSubmit={carregarDados}
         />
       )}
+      {/* MODAL DE REMARCAÇÃO */}
+      {remarcandoItem && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-[2rem] p-8 max-w-md w-full shadow-2xl">
+            <h2 className="text-2xl font-black mb-2 uppercase">
+              Remarcar Atendimento
+            </h2>
+            <p className="text-gray-500 text-sm mb-6">
+              Cliente: <strong>{remarcandoItem.cliente}</strong>
+            </p>
 
-      {view === "historico" && (
-        <div className="space-y-6">
-          <h2 className="md:text-3xl text-2xl font-black uppercase tracking-widest">
-            Histórico de Agendamentos
-          </h2>
-
-          {/* FILTROS */}
-          <div className="flex flex-col md:flex-row gap-4">
+            <label className="block text-[10px] font-black uppercase text-gray-400 mb-2">
+              Nova Data e Hora
+            </label>
             <input
-              type="text"
-              placeholder="Filtrar por cliente..."
-              className="flex-1 p-3 rounded-xl border border-gray-200 focus:border-[#b5820e] outline-none"
-              value={filtroClienteHist}
-              onChange={(e) => setFiltroClienteHist(e.target.value)}
+              type="datetime-local"
+              className="w-full p-4 bg-gray-100 rounded-xl mb-6 font-bold"
+              value={novaDataHora}
+              onChange={(e) => setNovaDataHora(e.target.value)}
             />
 
-            <input
-              type="text"
-              placeholder="Filtrar por serviço..."
-              className="flex-1 p-3 rounded-xl border border-gray-200 focus:border-[#b5820e] outline-none"
-              value={filtroServicoHist}
-              onChange={(e) => setFiltroServicoHist(e.target.value)}
-            />
-
-            <input
-              type="date"
-              className="p-3 rounded-xl border border-gray-200 focus:border-[#b5820e] outline-none"
-              value={filtroDataHist}
-              onChange={(e) => setFiltroDataHist(e.target.value)}
-            />
-            <select
-              className="p-3 rounded-xl border border-gray-200 focus:border-[#b5820e] outline-none"
-              value={filtroStatus}
-              onChange={(e) =>
-                setFiltroStatus(
-                  e.target.value as
-                    | "confirmado"
-                    | "pendente"
-                    | "cancelado"
-                    | "reagendado"
-                    | ""
-                )
-              }
-            >
-              <option value="">Todos os Status</option>
-              <option value="confirmado">Confirmado</option>
-              <option value="pendente">Pendente</option>
-              <option value="cancelado">Cancelado</option>
-              <option value="reagendado">Reagendado</option>
-            </select>
-          </div>
-
-          {/* LISTA DO HISTÓRICO */}
-          <div className="space-y-4">
-            {agenda
-              .filter((item) => isAgendamentoPassado(item.data, item.hora))
-
-              .filter((item) => {
-                const clienteMatch = (item.cliente ?? "")
-                  .toLowerCase()
-                  .includes(filtroClienteHist.toLowerCase());
-
-                const servicoMatch = (item.servico ?? "")
-                  .toLowerCase()
-                  .includes(filtroServicoHist.toLowerCase());
-
-                const dataMatch = filtroDataHist
-                  ? item.data === filtroDataHist
-                  : true;
-
-                return clienteMatch && servicoMatch && dataMatch;
-              })
-
-              .map((item) => (
-                <Agenda_Item
-                  id={item.id}
-                  cliente={item.cliente}
-                  telefone={item.telefone}
-                  servico={item.servico}
-                  data={item.data}
-                  hora={item.hora}
-                  status={item.status}
-                  obs={item.obs}
-                  onItemClick={() => navigate(`/agenda`)}
-                  onClienteClick={() => navigate(`/Lista_Clientes`)}
-                  onRemarcar={() => alert("Remarcar")}
-                  onCancelar={() => alert("Cancelar")}
-                />
-              ))}
-
-            {/* SEM RESULTADOS */}
-            {agenda
-              .filter((item) => isAgendamentoPassado(item.data, item.hora))
-              .filter((item) => {
-                const clienteMatch = item.cliente
-                  .toLowerCase()
-                  .includes(filtroClienteHist.toLowerCase());
-                const servicoMatch = item.servico
-                  .toLowerCase()
-                  .includes(filtroServicoHist.toLowerCase());
-                const dataMatch = filtroDataHist
-                  ? item.data === filtroDataHist
-                  : true;
-                return clienteMatch && servicoMatch && dataMatch;
-              }).length === 0 && (
-              <p className="text-gray-400 italic">
-                Nenhum agendamento encontrado.
-              </p>
-            )}
+            <div className="flex gap-3">
+              <button
+                onClick={() => setRemarcandoItem(null)}
+                className="flex-1 py-4 font-bold text-gray-400 uppercase text-xs"
+              >
+                Voltar
+              </button>
+              <button
+                // 2. Corrigido para 'handleReagendar'
+                onClick={handleReagendar}
+                className="flex-1 py-4 bg-[#b5820e] text-white rounded-xl font-black uppercase text-xs shadow-lg"
+              >
+                Confirmar Reagendamento
+              </button>
+            </div>
           </div>
         </div>
       )}
     </div>
   );
 }
+
+// Subcomponentes
+function StatCard({ title, value, icon: Icon, onClick }: any) {
+  return (
+    <div
+      onClick={onClick}
+      className="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm cursor-pointer hover:-translate-y-1 transition-all"
+    >
+      <div className="w-12 h-12 rounded-2xl bg-gray-50 flex items-center justify-center mb-4">
+        <Icon size={24} className="text-[#b5820e]" />
+      </div>
+      <p className="text-[10px] text-gray-500 uppercase font-bold mb-1">
+        {title}
+      </p>
+      <p className="text-2xl font-black text-gray-900">{value}</p>
+    </div>
+  );
+}
+
 function CreateAppointmentCard({ onClick }: { onClick: () => void }) {
   return (
     <div className="relative overflow-hidden bg-black rounded-[3rem] p-10 text-white shadow-2xl group transition-all duration-500 hover:scale-[1.01] flex flex-col justify-between min-h-[320px]">
@@ -680,50 +442,3 @@ function CreateAppointmentCard({ onClick }: { onClick: () => void }) {
   );
 }
 
-// Subcomponente StatCard
-function StatCard({ title, value, icon: Icon, onClick }: any) {
-  return (
-    <div
-      onClick={onClick}
-      className="
-        relative
-        bg-white
-        p-4
-        rounded-3xl
-        border border-gray-300
-        shadow-[0_10px_30px_rgba(0,0,0,0.06)]
-        cursor-pointer
-        transition-all duration-300 ease-out
-        hover:-translate-y-1
-        hover:shadow-[0_20px_40px_rgba(0,0,0,0.08)]
-        hover:border-gray-300
-        md:mb-20
-      "
-    >
-      {/* Ícone */}
-      <div
-        className="
-        w-14 h-14
-        rounded-2xl
-        bg-gradient-to-br 
-        flex items-center justify-center
-        mb-6
-      "
-      >
-        <Icon size={32} className="text-[#b5820e] " />
-      </div>
-
-      {/* Texto */}
-      <p className="text-xs text-gray-500 uppercase tracking-widest font-semibold mb-2">
-        {title}
-      </p>
-
-      <p className="md:text-3xl text-2xl font-bold text-gray-900 leading-none mb-2">
-        {value}
-      </p>
-
-      {/* detalhe visual */}
-      <div className="absolute top-0 right-0 w-24 h-24 rounded-full bg-gray-100/40 blur-2xl pointer-events-none" />
-    </div>
-  );
-}

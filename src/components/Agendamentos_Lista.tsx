@@ -29,19 +29,19 @@ export function Agendamentos_Lista({
   });
 
   return (
-    <div className="bg-white rounded-[2.5rem] shadow-2xl border border-gray-50 overflow-hidden">
+    <div className=" rounded-[2.5rem]  overflow-hidden">
 
       {/* HEADER */}
-      <div className="bg-black p-6 sm:p-8 flex justify-between items-center">
+      <div className=" p-6 sm:p-8 flex justify-between items-center">
         <div className="flex items-center gap-4">
           <button
             onClick={onVoltar}
-            className="p-2 hover:bg-white/10 rounded-full transition text-[#b5820e]"
+            className="p-2 hover:bg-black/10 rounded-full transition text-[#b5820e]"
           >
             <ChevronLeft size={24} />
           </button>
           <div>
-            <h2 className="text-xl sm:text-2xl font-black text-white uppercase">
+            <h2 className="text-xl sm:text-2xl font-black text-black uppercase">
               Agenda Geral
             </h2>
             <p className="text-gray-400 text-[10px] uppercase tracking-[0.3em]">
@@ -53,7 +53,7 @@ export function Agendamentos_Lista({
       </div>
 
       {/* FILTROS */}
-      <div className="p-4 sm:p-6 bg-gray-50 border-b border-gray-100 flex flex-wrap gap-4">
+      <div className="p-4 sm:p-6  flex flex-wrap gap-4">
 
         {/* PESQUISA */}
         <div className="flex-1 min-w-[220px] relative">

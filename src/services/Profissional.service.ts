@@ -1,44 +1,48 @@
-// src/services/Profissional.service.ts
 import api from "./api";
 
 export const ProfissionalService = {
-  // Agenda de hoje e futura
-  listarMinhaAgenda: async () => {
+  listarMinhaAgenda: async (data?: string) => {
     try {
-      const res = await api.get("/funcionario/listar-agendamentos");
+      // ✅ CORREÇÃO: Não force a data de hoje se 'data' vier vazio
+      const res = await api.get(`/funcionario/listar-agendamentos`, {
+        params: data ? { data } : {} // Só envia o parâmetro se ele existir
+      });
       return res.data;
     } catch (error: any) {
-      console.error("ProfissionalService.listarMinhaAgenda erro:", error?.response?.data || error.message || error);
+      console.error("Erro ao listar agenda:", error);
       throw error;
     }
   },
 
-  // Histórico (passados)
   verHistorico: async () => {
-    const res = await api.get("/funcionario/historico");
-    return res.data;
-  },
-
-  // Todos os agendamentos do sistema (sem exceção)
-  
-  // Concluir agendamento
-  concluirServico: async (id: number) => {
-    const res = await api.patch(`/funcionario/agendamentos/${id}/concluir`);
-    return res.data;
-  },
-
-  // Dados do Perfil (Avaliação e Serviço Associado)
-  obterPerfil: async () => {
-    // Caso não tenha esta rota ainda, retornamos um mock que você pode ajustar
     try {
-      const res = await api.get("/funcionario/perfil");
+      const res = await api.get("/funcionario/historico");
       return res.data;
-    } catch {
-      return {
-        nome: localStorage.getItem("usuario_nome") || "Profissional",
-        servico_associado: "Estética Avançada",
-        avaliacao: 4.9
-      };
+    } catch (error) {
+      console.error("Erro ao ver histórico:", error);
+      throw error;
     }
+  },
+
+  obterPerfil: async () => {
+  try {
+    const res = await api.get("/funcionario/perfil-resumo"); 
+    return res.data;
+  } catch {
+    return {
+      nome: localStorage.getItem("usuario_nome") || "Profissional",
+      servico_associado: localStorage.getItem("usuario_servico") || "Serviço",
+      avaliacao: 4.9,
+      estatisticas: { total_agendamentos: 0 },
+    };
   }
+},
+
+
+
+
+  obterMinhaDisponibilidade: async () => {
+    const res = await api.get("/funcionario/minha-disponibilidade");
+    return res.data;
+  },
 };
