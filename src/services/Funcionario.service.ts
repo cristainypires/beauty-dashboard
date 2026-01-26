@@ -34,23 +34,29 @@ export const FuncionarioService = {
 
   // --- DISPONIBILIDADE ---
    // Busca a disponibilidade de OUTRO funcionário (ID passado no param)
-  obterDisponibilidadeAdm: async (funcionarioId: string) => {
+  obterDisponibilidade: async (funcionarioId: string) => {
     const res = await api.get(`/funcionario/adm/disponibilidade/${funcionarioId}`);
     return res.data;
   },
 
+  obterPanoramaCompleto: async (id: string) => {
+    const res = await api.get(`/funcionario/panorama/${id}`);
+    return res.data;
+  },
+
   // Salva a disponibilidade de OUTRO funcionário (ID enviado no body)
-  marcarDisponibilidadeAdm: async (dados: { funcionario_id: string, semana: any[] }) => {
+  marcarDisponibilidade: async (dados: { funcionario_id: string, semana: any[] }) => {
     const res = await api.post("/funcionario/adm/disponibilidade", dados);
     return res.data;
   },
-  marcarFerias: async (dados: { data_inicio: string; data_fim: string }) => {
+    marcarFerias: async (dados: { data_inicio: string; data_fim: string; funcionario_id: string }) => {
+    // Agora aceita funcionario_id para quando o ADM for marcar
     const res = await api.post("/funcionario/ferias", dados);
     return res.data;
   },
 
-  bloquearHorario: async (dados: { data: string; hora: string; motivo?: string }) => {
-    const res = await api.post("/funcionario/bloquear-horario", dados);
+  bloquearHorario: async (dados: { data: string; hora: string; motivo?: string; funcionario_id: string }) => {
+  const res = await api.post("/funcionario/bloquear-horario", dados); // Esta URL está correta
     return res.data;
   },
 

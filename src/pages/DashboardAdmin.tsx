@@ -16,6 +16,7 @@ import {
   criarServico,
   atualizarServico,
   PromocaoService,
+  
 } from "../services/Admin.service";
 
 import { AuditoriaService, LogEntry } from "../services/Auditoria.service";
@@ -31,6 +32,7 @@ import {
   FileText,
   BarChart3,
   Settings,
+  ChevronLeft,
 } from "lucide-react";
 
 // Importação dos teus componentes
@@ -45,7 +47,6 @@ import { Popularidade_Servicos } from "../components/Popularidade_Servicos";
 import { Promocoes_Admin } from "../components/Promocoes_Admin";
 import { Agenda_Item } from "../components/Agenda_Item";
 
-
 // Configuração de Tempo (Sincronização Cabo Verde)
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
@@ -54,7 +55,6 @@ import timezone from "dayjs/plugin/timezone";
 dayjs.extend(utc);
 dayjs.extend(timezone);
 const FUSO_CABO_VERDE = "Atlantic/Cape_Verde";
-
 
 // =====================
 // TIPOS
@@ -115,60 +115,72 @@ export function DashboardAdmin() {
   const [servicos, setServicos] = useState<Servico[]>([]);
   const [logsAuditoria, setLogsAuditoria] = useState<LogEntry[]>([]);
   const [loading, setLoading] = useState(true);
-
-  // 2. Função para carregar agendamentos do Back-end
-   const hojeISO = useMemo(() => dayjs().tz(FUSO_CABO_VERDE).format("YYYY-MM-DD"), []);
-
-const carregarAgendamentos = async () => {
-  try {
-    setLoading(true);
-    const dados = await listarAgendamentos();
-    const agendamentosArray = Array.isArray(dados) ? dados : dados?.data || [];
-
-    const formatados = agendamentosArray
-      .map((item: any) => {
-        if (!item.data_hora_inicio) return null;
-
-        // ✅ LÓGICA IDÊNTICA AO PROFISSIONAL:
-        // Interpreta o que vem do banco como UTC e converte para Cabo Verde
-  const dtCVE = dayjs.utc(item.data_hora_inicio).tz(FUSO_CABO_VERDE).subtract(1, "hour");
-
-        return {
-          id: item.id,
-          cliente: item.cliente_nome || item.nome_cliente || "Sem nome",
-          servico: item.nome_servico || "",
-          profissional: item.profissional_nome || "",
-          // Usamos dataIso (com 'o' minúsculo) para parear com o que você tem no Profissional
-          dataIso: dtCVE.format("YYYY-MM-DD"), 
-          data: dtCVE.toDate(),
-          hora: dtCVE.format("HH:mm"),
-          timestamp: dtCVE.valueOf(),
-          telefone: item.cliente_telefone || item.telefone_cliente || "",
-          status: (item.status || "pendente")
-            .toLowerCase()
-            .trim()
-            .normalize("NFD")
-            .replace(/[\u0300-\u036f]/g, ""), // Remove acentos como no profissional
-        };
-      })
-      .filter(Boolean);
-
-    // Ordenação por horário real (timestamp)
-    const ordenados = formatados.sort((a: any, b: any) => a.timestamp - b.timestamp);
-    setAgendamentos(ordenados);
-  } catch (error) {
-    console.error("Erro ao carregar agendamentos:", error);
-  } finally {
-    setLoading(false);
-  }
+  const onVoltar = () => {
+  setView("home"); 
 };
 
- // Filtrar agendamentos de hoje baseado na data de Cabo Verde
-const agendamentosHoje = useMemo(() => {
-  return agendamentos.filter((item: any) => item.dataIso === hojeISO);
-}, [agendamentos, hojeISO]);
 
+  // 2. Função para carregar agendamentos do Back-end
+  const hojeISO = useMemo(
+    () => dayjs().tz(FUSO_CABO_VERDE).format("YYYY-MM-DD"),
+    [],
+  );
 
+  const carregarAgendamentos = async () => {
+    try {
+      setLoading(true);
+      const dados = await listarAgendamentos();
+      const agendamentosArray = Array.isArray(dados)
+        ? dados
+        : dados?.data || [];
+
+      const formatados = agendamentosArray
+        .map((item: any) => {
+          if (!item.data_hora_inicio) return null;
+
+          // ✅ LÓGICA IDÊNTICA AO PROFISSIONAL:
+          // Interpreta o que vem do banco como UTC e converte para Cabo Verde
+          const dtCVE = dayjs
+            .utc(item.data_hora_inicio)
+            .tz(FUSO_CABO_VERDE)
+            .subtract(1, "hour");
+
+          return {
+            id: item.id,
+            cliente: item.cliente_nome || item.nome_cliente || "Sem nome",
+            servico: item.nome_servico || "",
+            profissional: item.profissional_nome || "",
+            // Usamos dataIso (com 'o' minúsculo) para parear com o que você tem no Profissional
+            dataIso: dtCVE.format("YYYY-MM-DD"),
+            data: dtCVE.toDate(),
+            hora: dtCVE.format("HH:mm"),
+            timestamp: dtCVE.valueOf(),
+            telefone: item.cliente_telefone || item.telefone_cliente || "",
+            status: (item.status || "pendente")
+              .toLowerCase()
+              .trim()
+              .normalize("NFD")
+              .replace(/[\u0300-\u036f]/g, ""), // Remove acentos como no profissional
+          };
+        })
+        .filter(Boolean);
+
+      // Ordenação por horário real (timestamp)
+      const ordenados = formatados.sort(
+        (a: any, b: any) => a.timestamp - b.timestamp,
+      );
+      setAgendamentos(ordenados);
+    } catch (error) {
+      console.error("Erro ao carregar agendamentos:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Filtrar agendamentos de hoje baseado na data de Cabo Verde
+  const agendamentosHoje = useMemo(() => {
+    return agendamentos.filter((item: any) => item.dataIso === hojeISO);
+  }, [agendamentos, hojeISO]);
 
   // 3. Carregar assim que o componente montar
   useEffect(() => {
@@ -218,6 +230,7 @@ const agendamentosHoje = useMemo(() => {
     | "clientes"
     | "popularidade_servicos"
     | "promocoes"
+    | "hoje"
   >("home");
 
   ///////////////////////////////////////////////
@@ -450,31 +463,22 @@ const agendamentosHoje = useMemo(() => {
     setView("novo-funcionario");
   };
 
-
-
-
   /////////////////////////////////////////////////
   /////////
-const normalizarDataCVE = (dataHora: string) => {
-  const d = dayjs.utc(dataHora).tz(FUSO_CABO_VERDE);
+  const normalizarDataCVE = (dataHora: string) => {
+    const d = dayjs.utc(dataHora).tz(FUSO_CABO_VERDE);
 
-  return {
-    dataISO: d.format("YYYY-MM-DD"),
-    data: d.format("YYYY-MM-DDTHH:mm:ss"),
-    hora: d.format("HH:mm"),
-    timestamp: d.valueOf(),
+    return {
+      dataISO: d.format("YYYY-MM-DD"),
+      data: d.format("YYYY-MM-DDTHH:mm:ss"),
+      hora: d.format("HH:mm"),
+      timestamp: d.valueOf(),
+    };
   };
-};
 
-const ordenarPorDataHoraCVE = (a: Agendamento, b: Agendamento) => {
-  return a.timestamp - b.timestamp;
-};
-
-
-
-
-
-
+  const ordenarPorDataHoraCVE = (a: Agendamento, b: Agendamento) => {
+    return a.timestamp - b.timestamp;
+  };
 
   const precoServico: Record<string, number> = {
     "Limpeza de Pele": 2500,
@@ -498,11 +502,11 @@ const ordenarPorDataHoraCVE = (a: Agendamento, b: Agendamento) => {
   const servicoMaisPopular =
     Object.entries(contagemServicos).sort((a, b) => b[1] - a[1])[0]?.[0] || "—";
 
-   const faturamentoDiario = useMemo(() => {
+  const faturamentoDiario = useMemo(() => {
     return agendamentos
-      .filter(item => item.dataISO === hojeISO && item.status === "concluido")
+      .filter((item) => item.dataISO === hojeISO && item.status === "concluido")
       .reduce((total, item) => {
-        const s = servicos.find(serv => serv.nome === item.servico);
+        const s = servicos.find((serv) => serv.nome === item.servico);
         return total + (s ? Number(s.preco) : 0);
       }, 0);
   }, [agendamentos, servicos, hojeISO]);
@@ -518,6 +522,8 @@ const ordenarPorDataHoraCVE = (a: Agendamento, b: Agendamento) => {
     // Verifica se a data é válida
     return isNaN(d.getTime()) ? null : d;
   };
+
+ 
 
   return (
     <div className="min-h-screen bg-white p-4 sm:p-8">
@@ -551,8 +557,15 @@ const ordenarPorDataHoraCVE = (a: Agendamento, b: Agendamento) => {
           {/* ===== STATS ===== */}
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 sm:gap-4 mb-20 md:mb-25">
             <StatCard
+              onClick={() => setView("hoje")}
+              title="Agendamentos so de Hoje"
+              value={agendamentosHoje.length}
+              icon={<Calendar className="text-purple-500" />}
+              color="bg-purple-50"
+            />
+            <StatCard
               onClick={() => setView("todos-agendamentos")}
-              title="Agendamentos Hoje"
+              title="Todos os Agendamentos"
               value={agendamentosHoje.length}
               icon={<Calendar className="text-purple-500" />}
               color="bg-purple-50"
@@ -593,6 +606,7 @@ const ordenarPorDataHoraCVE = (a: Agendamento, b: Agendamento) => {
           {/* ===== AGENDAMENTOS & SERVIÇOS ===== */}
           <div className="grid grid-cols-1 lg:grid-cols-2 max-w-full gap-4 sm:gap-6 mb-10 sm:mb-8">
             {/* Agendamentos */}
+
             <div className=" rounded-3xl  border border-gray-300 p-4 sm:p-6">
               <div className="flex justify-between items-center mb-4 sm:mb-6">
                 <h2 className="text-lg sm:text-xl font-bold text-black">
@@ -605,29 +619,35 @@ const ordenarPorDataHoraCVE = (a: Agendamento, b: Agendamento) => {
                   Ver Tudo →
                 </button>
               </div>
-               <div className="space-y-4">
-  {loading ? (
-    <p className="text-gray-400 italic text-center py-10">Sincronizando fuso horário...</p>
-  ) : agendamentosHoje.length > 0 ? (
-    agendamentosHoje.slice(0, 5).map((item: any) => (
-      <Agenda_Item
-        key={item.id}
-        {...item}
-        // Garanta que o nome da prop de data coincida com o que o Agenda_Item espera
-        dataIso={item.dataIso} 
-        servico={`${item.servico} • ${item.profissional}`}
-        clickable={true}
-        onItemClick={() => setView("todos-agendamentos")}
-        onCancelar={() => handleCancelar(item.id)}
-        onRemarcar={() => handleReagendar(item.id)}
-      />
-    ))
-  ) : (
-    <div className="p-10 border-2 border-dashed rounded-3xl text-center text-gray-400 italic">
-      Nenhum agendamento para hoje ({dayjs().tz(FUSO_CABO_VERDE).format("DD/MM/YYYY")}).
-    </div>
-  )}
-</div>
+              
+                <div className="space-y-4">
+                  {loading ? (
+                    <p className="text-gray-400 italic text-center py-10">
+                      Sincronizando fuso horário...
+                    </p>
+                  ) : agendamentosHoje.length > 0 ? (
+                    agendamentosHoje
+                      .slice(0, 5)
+                      .map((item: any) => (
+                        <Agenda_Item
+                          key={item.id}
+                          {...item}
+                          dataIso={item.dataIso}
+                          servico={`${item.servico} • ${item.profissional}`}
+                          clickable={true}
+                          onItemClick={() => setView("todos-agendamentos")}
+                          onCancelar={() => handleCancelar(item.id)}
+                          onRemarcar={() => handleReagendar(item.id)}
+                        />
+                      ))
+                  ) : (
+                    <div className="p-10 border-2 border-dashed rounded-3xl text-center text-gray-400 italic">
+                      Nenhum agendamento para hoje (
+                      {dayjs().tz(FUSO_CABO_VERDE).format("DD/MM/YYYY")}).
+                    </div>
+                  )}
+                </div>
+              
             </div>
 
             {/* Serviços Disponíveis */}
@@ -823,6 +843,42 @@ const ordenarPorDataHoraCVE = (a: Agendamento, b: Agendamento) => {
           </div>
         </>
       )}
+{view === "hoje" && (
+  <div className="space-y-4">
+    <button
+      onClick={onVoltar}
+      className="p-3 bg-white/10 rounded-full text-[#b5820e] hover:bg-[#b5820e] hover:text-black transition-all"
+    >
+      <ChevronLeft size={24} />
+    </button>
+
+    {loading ? (
+      <p className="text-gray-400 italic text-center py-10">
+        Sincronizando fuso horário...
+      </p>
+    ) : agendamentosHoje.length > 0 ? (
+      agendamentosHoje.slice(0, 5).map((item: any) => (
+        <Agenda_Item
+          key={item.id}
+          {...item}
+          dataIso={item.dataIso}
+          servico={`${item.servico} • ${item.profissional}`}
+          clickable={true}
+          onItemClick={() => setView("todos-agendamentos")}
+          onCancelar={() => handleCancelar(item.id)}
+          onRemarcar={() => handleReagendar(item.id)}
+        />
+      ))
+    ) : (
+      <div className="p-10 border-2 border-dashed rounded-3xl text-center text-gray-400 italic">
+        Nenhum agendamento para hoje (
+        {dayjs().tz(FUSO_CABO_VERDE).format("DD/MM/YYYY")}).
+      </div>
+    )}
+  </div>
+)}
+
+
       {/* ===== VIEWS DINÂMICAS ===== */}
       {view === "promocoes" && (
         <Promocoes_Admin

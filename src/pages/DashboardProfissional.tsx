@@ -7,6 +7,7 @@ import { safeArray } from "../utils/dataHelpers";
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc.js";
 import timezone from "dayjs/plugin/timezone.js";
+import { PanoramaDisponibilidade } from "../components/PanoramaDisponibilidade";
 dayjs.extend(utc);
 dayjs.extend(timezone);
 
@@ -15,7 +16,7 @@ const FUSO_CABO_VERDE = "Atlantic/Cape_Verde";
 
 
 export function DashboardProfissional() {
-  const [view, setView] = useState<"home" | "agenda" | "historico">("home");
+  const [view, setView] = useState<"home" | "agenda" | "historico"|"ver">("home");
   const [agenda, setAgenda] = useState<any[]>([]);
   const [perfil, setPerfil] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -172,7 +173,7 @@ export function DashboardProfissional() {
         <>
           {view === "home" && (
             <div className="space-y-10">
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-6">
                 <StatCard
                   title="Agendamentos de hoje"
                   value={agendaDeHoje.length}
@@ -190,6 +191,13 @@ export function DashboardProfissional() {
                   icon={CheckCircle}
                   onClick={() => setView("historico")}
                 />{" "}
+
+                <StatCard
+                  title="Ver minha agenda"
+                  value={""}
+                  icon={CheckCircle}
+                  onClick={() => setView("ver")}
+                />
               </div>
 
               <div className="space-y-4">
@@ -247,6 +255,8 @@ export function DashboardProfissional() {
               )}
             </div>
           )}
+
+          {view === "ver" && <PanoramaDisponibilidade/>}
         </>
       )}
     </div>

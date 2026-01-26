@@ -24,10 +24,11 @@ import { Gestao_Disponibilidade } from "../components/Gestao_Disponibilidade";
 import { Form_Agendamento_Funcionario } from "../components/Form_Agendamento_Funcionario";
 import { Lista_Clientes } from "../components/Lista_Clientes";
 import { safeArray } from "../utils/dataHelpers";
+import { PanoramaDisponibilidade } from "../components/PanoramaDisponibilidade";
 
 export function DashboardFuncionario() {
   const [view, setView] = useState<
-    "home" | "agenda" | "historico" | "disponibilidade" | "novo"
+    "home" | "agenda" | "historico" | "disponibilidade" | "novo"|"ver"
   >("home");
   const [agenda, setAgenda] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -235,11 +236,18 @@ const FUSO_CABO_VERDE = "Atlantic/Cape_Verde";
                   onClick={() => setView("historico")}
                 />
                 <StatCard
+                  title=" Agenda dos Funcionarios"
+                  value="VER"
+                  icon={Plus}
+                  onClick={() => setView("ver")}
+                />
+                <StatCard
                   title="Novo Agendamento"
                   value="Criar"
                   icon={Plus}
                   onClick={() => setView("novo")}
                 />
+
               </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-20">
@@ -311,6 +319,7 @@ const FUSO_CABO_VERDE = "Atlantic/Cape_Verde";
             </div>
           )}
 
+          
           {view === "agenda" && (
             <div className="space-y-6">
               <h2 className="text-2xl font-black uppercase">
@@ -339,6 +348,10 @@ const FUSO_CABO_VERDE = "Atlantic/Cape_Verde";
 
       {/* COMPONENTES EXTERNOS */}
       {view === "disponibilidade" && <Gestao_Disponibilidade />}
+      {view ==="ver" &&
+            <PanoramaDisponibilidade/>
+          }
+
       {view === "novo" && (
         <Form_Agendamento_Funcionario
           onVoltar={() => setView("home")}
