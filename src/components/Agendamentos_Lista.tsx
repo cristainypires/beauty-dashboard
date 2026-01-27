@@ -19,14 +19,19 @@ export function Agendamentos_Lista({
   const [dataFiltro, setDataFiltro] = useState("");
   const [pesquisa, setPesquisa] = useState("");
 
-  const agendamentosFiltrados = agendamentos.filter((ag) => {
-    const matchData = dataFiltro ? ag.data === dataFiltro : true;
-    const matchTexto =
-      ag.cliente.toLowerCase().includes(pesquisa.toLowerCase()) ||
-      ag.servico.toLowerCase().includes(pesquisa.toLowerCase());
+ const agendamentosFiltrados = agendamentos.filter((ag) => {
+  const matchData = dataFiltro
+    ? new Date(ag.data).toISOString().slice(0, 10) === dataFiltro
+    : true;
 
-    return matchData && matchTexto;
-  });
+  const matchTexto =
+    ag.cliente.toLowerCase().includes(pesquisa.toLowerCase()) ||
+    ag.servico.toLowerCase().includes(pesquisa.toLowerCase());
+
+  return matchData && matchTexto;
+});
+
+
 
   return (
     <div className=" rounded-[2.5rem]  overflow-hidden">
@@ -36,7 +41,7 @@ export function Agendamentos_Lista({
         <div className="flex items-center gap-4">
           <button
             onClick={onVoltar}
-            className="p-2 hover:bg-black/10 rounded-full transition text-[#b5820e]"
+            className="p-2  rounded-full transition text-[#b5820e] hover:bg-[#b5820e] hover:text-black"
           >
             <ChevronLeft size={24} />
           </button>
@@ -69,16 +74,17 @@ export function Agendamentos_Lista({
 
         {/* DATA */}
         <input
-          type="date"
-          value={dataFiltro}
-          onChange={(e) => setDataFiltro(e.target.value)}
-          className="p-3.5 bg-white rounded-2xl border border-gray-200 text-sm font-bold shadow-sm cursor-pointer"
-        />
+  type="date"
+  value={dataFiltro}
+  onChange={(e) => setDataFiltro(e.target.value)}
+  className="p-3.5 bg-white rounded-2xl border border-gray-200 text-sm font-bold shadow-sm cursor-pointer focus:ring-2 focus:ring-[#b5820e] outline-none"
+/>
+
       </div>
 
       {/* LISTA DE CARDS */}
       <div className="space-y-2">
-        {agendamentos.map((item) => (
+        {agendamentosFiltrados.map((item) => (
           <Agenda_Item
             key={item.id}
             id={item.id}
