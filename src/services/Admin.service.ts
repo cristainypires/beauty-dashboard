@@ -27,14 +27,32 @@ export const listarServicos = async () => {
 };
 
 // Criar novo serviço
+// Localização: src/services/Admin.service.ts
+
+// 1. Corrigir a função de Criar
 export const criarServico = async (data: { nome: string; preco: number; duracao: number }) => {
-  const res = await api.post("/admin/servicos", data);
+  // MAPEAMENTO: Transformamos os nomes do front para os nomes que o backend espera
+  const payload = {
+    nome_servico: data.nome,
+    duracao_minutos: data.duracao,
+    preco: data.preco
+  };
+
+  const res = await api.post("/admin/servicos", payload);
   return res.data;
 };
 
-// Atualizar serviço existente
+// 2. Corrigir a função de Atualizar
 export const atualizarServico = async (id: number, data: any) => {
-  const res = await api.put(`/admin/servicos/${id}`, data);
+  // Também precisamos mapear aqui para garantir que a edição funcione
+  const payload = {
+    nome_servico: data.nome,
+    duracao_minutos: data.duracao,
+    preco: data.preco,
+    ativo: data.ativo
+  };
+
+  const res = await api.put(`/admin/servicos/${id}`, payload);
   return res.data;
 };
 
@@ -62,15 +80,40 @@ export const listarFuncionarios = async () => {
 };
 
 export const criarFuncionario = async (data: any) => {
-  const res = await api.post("/admin/funcionarios", data);
+  // Mapeamos os campos do formulário para o que o backend espera
+  const payload = {
+    nome: data.nome,
+    apelido: data.apelido,
+    email: data.email,
+    numero_telefone: data.telefone, // De telefone para numero_telefone
+    data_nascimento: data.nascimento,
+    palavra_passe: data.senha,      // De senha para palavra_passe
+    funcao_especialidade: data.especialidade
+  };
+  const res = await api.post("/admin/funcionarios", payload);
   return res.data;
 };
 
-export const atualizarFuncionario = async (
-  id: number,
-  data: any
-) => {
-  const res = await api.put(`/admin/funcionarios/${id}`, data);
+// src/services/Admin.service.ts
+
+export const atualizarFuncionario = async (id: number, data: any) => {
+  const payload = {
+    nome: data.nome,
+    apelido: data.apelido,
+    email: data.email,
+    numero_telefone: data.telefone,    // Mapeando para o nome do banco
+    data_nascimento: data.nascimento,
+    funcao_especialidade: data.especialidade,
+    ativo: data.status === "Ativo",    // Converte para boolean
+    servicos_ids: data.servicos_ids    // O array de IDs [1, 5, 8]
+  };
+
+  // Se o usuário digitou uma nova senha, adiciona ao envio
+  if (data.senha && data.senha.length >= 8) {
+    (payload as any).palavra_passe = data.senha;
+  }
+
+  const res = await api.put(`/admin/funcionarios/${id}`, payload);
   return res.data;
 };
 

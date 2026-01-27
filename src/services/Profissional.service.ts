@@ -3,9 +3,8 @@ import api from "./api";
 export const ProfissionalService = {
   listarMinhaAgenda: async (data?: string) => {
     try {
-      // ✅ CORREÇÃO: Não force a data de hoje se 'data' vier vazio
       const res = await api.get(`/funcionario/listar-agendamentos`, {
-        params: data ? { data } : {} // Só envia o parâmetro se ele existir
+        params: data ? { data } : {} 
       });
       return res.data;
     } catch (error: any) {

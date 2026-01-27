@@ -85,6 +85,7 @@ export function Agendamentos_Lista({
             cliente={item.cliente}
             telefone={item.telefone || ""}
             servico={`${item.servico} • ${item.profissional}`}
+            profissional={item.profissional}
             data={item.data}
             hora={item.hora}
             status={item.status}

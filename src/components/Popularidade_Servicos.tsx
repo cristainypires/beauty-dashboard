@@ -8,10 +8,12 @@ interface PopularidadeProps {
   onVoltar: () => void;
 }
 
-export function Popularidade_Servicos({ agendamentos, onVoltar }: PopularidadeProps) {
-  
+export function Popularidade_Servicos({
+  agendamentos,
+  onVoltar,
+}: PopularidadeProps) {
   // --- LÓGICA DE CÁLCULO REAL ---
-  
+
   // 1. Contar execuções por serviço
   const contagem: Record<string, number> = {};
   agendamentos.forEach((a) => {
@@ -34,16 +36,20 @@ export function Popularidade_Servicos({ agendamentos, onVoltar }: PopularidadePr
       {/* HEADER */}
       <div className="p-6 sm:p-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 relative overflow-hidden">
         <div className="flex items-center gap-4 w-full sm:w-auto z-10">
-          <button 
-            onClick={onVoltar} 
-            className="p-3 bg-white/10 rounded-full text-[#b5820e] hover:bg-[#b5820e] hover:text-black transition-all shadow-lg"
+          <button
+            onClick={onVoltar}
+            className="p-3 bg-white/10 rounded-full text-[#b5820e] hover:bg-[#b5820e] hover:text-black transition-all "
           >
             <ChevronLeft size={24} />
           </button>
-          <div>
-            <h2 className="text-2xl sm:text-3xl font-serif font-black text-black uppercase tracking-tighter">Ranking de Serviços</h2>
-            <p className="text-gray-400 text-[9px] sm:text-[10px] uppercase tracking-[0.2em] mt-1">
-              Análise baseada em {totalGeral} agendamentos reais
+          <div className="mb-6">
+            <h2 className="text-2xl sm:text-3xl font-serif font-black text-black uppercase tracking-tighter">
+              Ranking de <span className="text-[#b5820e]">Serviços</span>
+            </h2>
+            <p className="text-gray-500 text-xs sm:text-sm uppercase tracking-widest mt-1">
+              Análise baseada em{" "}
+              <span className="font-black text-black">{totalGeral}</span>{" "}
+              agendamentos reais
             </p>
           </div>
         </div>
@@ -52,17 +58,23 @@ export function Popularidade_Servicos({ agendamentos, onVoltar }: PopularidadePr
       <div className="p-6 sm:p-10 space-y-8">
         <div className="flex items-center gap-2 sm:gap-3">
           <Award className="text-[#b5820e]" size={20} />
-          <span className="text-xs sm:text-sm font-black uppercase tracking-[0.2em] text-gray-400">Desempenho de Vendas</span>
+          <span className="text-xs sm:text-sm font-black uppercase tracking-[0.2em] text-gray-400">
+            Desempenho de Vendas
+          </span>
         </div>
 
         {/* LISTA DE SERVIÇOS DINÂMICA */}
         <div className="grid grid-cols-1 gap-6">
           {dados.length === 0 ? (
-            <p className="text-center py-20 text-gray-400 italic">Sem dados de agendamentos para analisar.</p>
+            <p className="text-center py-20 text-gray-400 italic">
+              Sem dados de agendamentos para analisar.
+            </p>
           ) : (
             dados.map((s, i) => (
-              <div key={i} className="group relative bg-gray-50 rounded-3xl p-4 sm:p-6 shadow-sm hover:shadow-lg transition-all border border-gray-100">
-                
+              <div
+                key={i}
+                className="group relative bg-gray-50 rounded-3xl p-4 sm:p-6 shadow-sm hover:shadow-lg transition-all border border-gray-100"
+              >
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end mb-4 sm:mb-6 gap-2 sm:gap-0">
                   <div className="flex items-center gap-4">
                     <span className="text-3xl sm:text-4xl font-serif italic text-[#b5820e]">
@@ -71,15 +83,20 @@ export function Popularidade_Servicos({ agendamentos, onVoltar }: PopularidadePr
                     <div>
                       <div className="flex items-center gap-2">
                         <Scissors size={16} className="text-[#b5820e]" />
-                        <h4 className="text-sm sm:text-base font-black text-black uppercase tracking-tight">{s.nome}</h4>
+                        <h4 className="text-sm sm:text-base font-black text-black uppercase tracking-tight">
+                          {s.nome}
+                        </h4>
                       </div>
-                      <p className="text-[10px] sm:text-[11px] text-gray-400 font-bold uppercase tracking-widest mt-1">Participação no Mercado</p>
                     </div>
                   </div>
 
                   <div className="text-right">
-                    <span className="text-lg sm:text-xl font-black text-black">{s.total}</span>
-                    <span className="text-[10px] sm:text-[11px] text-gray-400 font-bold uppercase ml-1">Vendas</span>
+                    <span className="text-lg sm:text-xl font-black text-black">
+                      {s.total}
+                    </span>
+                    <span className="text-[10px] sm:text-[11px] text-gray-400 font-bold uppercase ml-1">
+                      Vendas
+                    </span>
                   </div>
                 </div>
 

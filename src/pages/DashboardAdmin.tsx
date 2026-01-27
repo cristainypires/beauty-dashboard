@@ -16,7 +16,7 @@ import {
   criarServico,
   atualizarServico,
   PromocaoService,
-  
+  removerServico,
 } from "../services/Admin.service";
 
 import { AuditoriaService, LogEntry } from "../services/Auditoria.service";
@@ -33,6 +33,10 @@ import {
   BarChart3,
   Settings,
   ChevronLeft,
+  List,
+  ArrowUpRight,
+  Pencil,
+  Trash2,
 } from "lucide-react";
 
 // Importação dos teus componentes
@@ -70,6 +74,8 @@ interface StatCardProps {
 interface ServiceBadgeProps {
   name: string;
   count: string;
+  onEdit: () => void; // Adicionado
+  onDelete: () => void; // Adicionado
 }
 
 interface Funcionario {
@@ -78,6 +84,8 @@ interface Funcionario {
   especialidade: string;
   email: string;
   telefone: string;
+  data_nascimento: string;
+  palavra_passe?: string; 
   status: "Ativo" | "Inativo";
 }
 
@@ -116,9 +124,8 @@ export function DashboardAdmin() {
   const [logsAuditoria, setLogsAuditoria] = useState<LogEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const onVoltar = () => {
-  setView("home"); 
-};
-
+    setView("home");
+  };
 
   // 2. Função para carregar agendamentos do Back-end
   const hojeISO = useMemo(
@@ -324,17 +331,17 @@ export function DashboardAdmin() {
   };
 
   // 3. Função para Remover
-  const handleRemoverFuncionario = async (id: number) => {
-    if (window.confirm("Tem certeza que deseja remover este funcionário?")) {
-      try {
-        await removerFuncionario(id);
-        alert("Funcionário removido!");
-        carregarFuncionarios(); // 🔄 Atualiza a lista
-      } catch (error) {
-        alert("Erro ao remover funcionário.");
-      }
+ const handleRemover = async (id: number) => {
+  if (window.confirm("Tem certeza que deseja apagar este funcionário permanentemente?")) {
+    try {
+      await removerFuncionario(id);
+      alert("Funcionário removido com sucesso!");
+      carregarFuncionarios(); // Recarrega a lista
+    } catch (error) {
+      alert("Erro ao remover: este profissional pode ter agendamentos registrados.");
     }
-  };
+  }
+};
 
   ////////////////////////////////////////
   //Servicos
@@ -382,6 +389,26 @@ export function DashboardAdmin() {
     } catch (error) {
       console.error(error);
       alert("Erro ao salvar o serviço.");
+    }
+  };
+
+  const handleRemoverServico = async (id: number) => {
+    // Mudamos a mensagem para alertar sobre a exclusão permanente
+    const confirmacao = window.confirm(
+      "ATENÇÃO: Este serviço será apagado PERMANENTEMENTE do sistema. Esta ação não pode ser desfeita. Deseja continuar?",
+    );
+
+    if (confirmacao) {
+      try {
+        await removerServico(id);
+        alert("Serviço apagado com sucesso!");
+        carregarServicos();
+      } catch (error: any) {
+        // Se o backend retornar o erro de agendamentos vinculados (400)
+        const msgErro =
+          error.response?.data?.erro || "Erro ao remover serviço.";
+        alert(msgErro);
+      }
     }
   };
 
@@ -476,16 +503,6 @@ export function DashboardAdmin() {
     };
   };
 
-  const ordenarPorDataHoraCVE = (a: Agendamento, b: Agendamento) => {
-    return a.timestamp - b.timestamp;
-  };
-
-  const precoServico: Record<string, number> = {
-    "Limpeza de Pele": 2500,
-    "Massagem Relaxante": 3000,
-    Manicure: 1500,
-    Depilação: 2000,
-  };
   // =====================
   // CÁLCULOS REAIS
   // =====================
@@ -504,7 +521,11 @@ export function DashboardAdmin() {
 
   const faturamentoDiario = useMemo(() => {
     return agendamentos
-      .filter((item) => item.dataISO === hojeISO && item.status === "concluido")
+      .filter(
+        (item) =>
+          dayjs(item.dataISO).format("YYYY-MM-DD") === hojeISO &&
+          item.status === "concluido", // minúsculo garantido no carregamento
+      )
       .reduce((total, item) => {
         const s = servicos.find((serv) => serv.nome === item.servico);
         return total + (s ? Number(s.preco) : 0);
@@ -523,10 +544,8 @@ export function DashboardAdmin() {
     return isNaN(d.getTime()) ? null : d;
   };
 
- 
-
   return (
-    <div className="min-h-screen bg-white p-4 sm:p-8">
+<div className="min-h-screen bg-white sm:p-8 md:px-20 md:py-10">
       {/* ===== HOME ===== */}
       {view === "home" && (
         <>
@@ -560,13 +579,13 @@ export function DashboardAdmin() {
               onClick={() => setView("hoje")}
               title="Agendamentos so de Hoje"
               value={agendamentosHoje.length}
-              icon={<Calendar className="text-purple-500" />}
+              icon={<List className="text-purple-500" />}
               color="bg-purple-50"
             />
             <StatCard
               onClick={() => setView("todos-agendamentos")}
               title="Todos os Agendamentos"
-              value={agendamentosHoje.length}
+              value={agendamentos.length}
               icon={<Calendar className="text-purple-500" />}
               color="bg-purple-50"
             />
@@ -619,52 +638,65 @@ export function DashboardAdmin() {
                   Ver Tudo →
                 </button>
               </div>
-              
-                <div className="space-y-4">
-                  {loading ? (
-                    <p className="text-gray-400 italic text-center py-10">
-                      Sincronizando fuso horário...
-                    </p>
-                  ) : agendamentosHoje.length > 0 ? (
-                    agendamentosHoje
-                      .slice(0, 5)
-                      .map((item: any) => (
-                        <Agenda_Item
-                          key={item.id}
-                          {...item}
-                          dataIso={item.dataIso}
-                          servico={`${item.servico} • ${item.profissional}`}
-                          clickable={true}
-                          onItemClick={() => setView("todos-agendamentos")}
-                          onCancelar={() => handleCancelar(item.id)}
-                          onRemarcar={() => handleReagendar(item.id)}
-                        />
-                      ))
-                  ) : (
-                    <div className="p-10 border-2 border-dashed rounded-3xl text-center text-gray-400 italic">
-                      Nenhum agendamento para hoje (
-                      {dayjs().tz(FUSO_CABO_VERDE).format("DD/MM/YYYY")}).
-                    </div>
-                  )}
-                </div>
-              
+
+              <div className="space-y-4">
+                {loading ? (
+                  <p className="text-gray-400 italic text-center py-10">
+                    Sincronizando fuso horário...
+                  </p>
+                ) : agendamentosHoje.length > 0 ? (
+                  agendamentosHoje
+                    .slice(0, 5)
+                    .map((item: any) => (
+                      <Agenda_Item
+                        key={item.id}
+                        {...item}
+                        dataIso={item.dataIso}
+                        servico={`${item.servico} • ${item.profissional}`}
+                        clickable={true}
+                        onItemClick={() => setView("todos-agendamentos")}
+                        onCancelar={() => handleCancelar(item.id)}
+                        onRemarcar={() => handleReagendar(item.id)}
+                      />
+                    ))
+                ) : (
+                  <div className="p-10 border-2 border-dashed rounded-3xl text-center text-gray-400 italic">
+                    Nenhum agendamento para hoje (
+                    {dayjs().tz(FUSO_CABO_VERDE).format("DD/MM/YYYY")}).
+                  </div>
+                )}
+              </div>
             </div>
+
+            {/* Serviços Disponíveis: falta o botao para remover e editar servico */}
 
             {/* Serviços Disponíveis */}
             <div className="bg-white rounded-3xl shadow-sm border border-gray-200 p-4 sm:p-6 text-center mt-10">
               <h2 className="text-lg sm:text-xl font-bold text-black mb-4 sm:mb-6 text-left">
                 Serviços Disponíveis
               </h2>
-              {servicos.map((servico) => (
-                <ServiceBadge
-                  key={servico.id}
-                  name={servico.nome}
-                  count={`${servico.preco} esc`}
-                />
-              ))}
+              <div className="max-h-[300px] overflow-y-auto pr-2">
+                {" "}
+                {/* Adicionado scroll se tiver muitos */}
+                {servicos.map((servico) => (
+                  <ServiceBadge
+                    key={servico.id}
+                    name={servico.nome}
+                    count={`${servico.preco} esc`}
+                    onEdit={() => {
+                      setServicoParaEditar(servico);
+                      setShowServicoModal(true);
+                    }}
+                    onDelete={() => handleRemoverServico(servico.id)}
+                  />
+                ))}
+              </div>
 
               <button
-                onClick={() => setShowServicoModal(true)}
+                onClick={() => {
+                  setServicoParaEditar(undefined); // Garante que o modal venha vazio
+                  setShowServicoModal(true);
+                }}
                 className="w-full mt-4 sm:mt-6 py-2 sm:py-3 border-2 border-dashed border-[#b5820e] text-[#b5820e] rounded-2xl font-bold flex items-center justify-center gap-1 sm:gap-2 hover:bg-amber-50 transition"
               >
                 <Plus size={16} /> Novo Serviço
@@ -676,27 +708,71 @@ export function DashboardAdmin() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-10 sm:gap-6">
             {/* Financeiro */}
             {/* Vendas & Lucro */}
-            <div className="bg-gray-800 text-white rounded-3xl shadow-sm border border-gray-700 p-4 sm:p-6">
-              <div className="flex items-center justify-between mb-4 sm:mb-6">
-                <h2 className="text-lg sm:text-xl font-bold">Vendas & Lucro</h2>
-                <BarChart3 className="text-[#b5820e]" size={18} />
-              </div>
-              <div className="space-y-2 sm:space-y-4">
-                <div className="p-2 sm:p-4 bg-gray-900 rounded-2xl">
-                  <p className="text-[9px] sm:text-xs text-gray-400 uppercase font-bold">
-                    Primavera ERP
-                  </p>
-                  <p className="text-[10px] sm:text-sm font-medium text-green-500">
-                    Status: Sincronizado
-                  </p>
+            <div className="bg-[#0a0a0a] text-white rounded-[2rem] shadow-2xl border border-gray-800 p-6 flex flex-col justify-between group hover:border-[#b5820e]/50 transition-all duration-500">
+              {/* TOPO: Título e Ícone */}
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h2 className="text-xl font-serif font-black uppercase tracking-tighter text-white">
+                    Vendas & Lucro
+                  </h2>
+                  <div className="flex items-center gap-1.5 mt-1">
+                    <span className="h-1.5 w-1.5 bg-green-500 rounded-full animate-pulse" />
+                    <p className="text-[9px] font-bold text-gray-500 uppercase tracking-widest">
+                      Live: Atualização em tempo real
+                    </p>
+                  </div>
                 </div>
-                <button
-                  onClick={() => setView("financeiro")}
-                  className="w-full py-2 sm:py-3 bg-[#b5820e] text-black rounded-2xl font-bold text-xs sm:text-sm flex items-center justify-center gap-1 sm:gap-2 hover:opacity-90 transition"
-                >
-                  <FileText size={14} /> Relatório Detalhado
-                </button>
+                <div className="p-3 bg-gray-900 rounded-2xl group-hover:bg-[#b5820e] transition-colors duration-500">
+                  <TrendingUp
+                    className="text-[#b5820e] group-hover:text-black"
+                    size={20}
+                  />
+                </div>
               </div>
+
+              {/* MEIO: Visualização de Dados Rápida */}
+              <div className="space-y-4 mb-8">
+                <div className="flex justify-between items-end">
+                  <div>
+                    <p className="text-[10px] text-gray-500 font-black uppercase tracking-widest mb-1">
+                      Faturamento Hoje
+                    </p>
+                    <p className="text-2xl font-black text-white">
+                      {faturamentoDiario.toLocaleString()}
+                      <span className="text-xs font-normal text-[#b5820e] ml-1">
+                        CVE
+                      </span>
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-[10px] text-gray-500 font-black uppercase tracking-widest mb-1">
+                      Margem
+                    </p>
+                    <p className="text-sm font-bold text-green-500">+12.5%</p>
+                  </div>
+                </div>
+
+                {/* Barra de Progresso Simbólica (Meta Mensal) */}
+                <div className="h-1.5 w-full bg-gray-900 rounded-full overflow-hidden">
+                  <div className="h-full bg-[#b5820e] rounded-full w-[65%] shadow-[0_0_10px_#b5820e]" />
+                </div>
+              </div>
+
+              {/* BOTÃO: Ação Principal */}
+              <button
+                onClick={() => setView("financeiro")}
+                className="group/btn w-full py-4 bg-gray-900 hover:bg-[#b5820e] text-white hover:text-black rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] flex items-center justify-center gap-3 transition-all duration-300 border border-gray-800 hover:border-[#b5820e]"
+              >
+                <FileText
+                  size={16}
+                  className="text-[#b5820e] group-hover/btn:text-black"
+                />
+                Análise Detalhada
+                <ArrowUpRight
+                  size={14}
+                  className="opacity-0 group-hover/btn:opacity-100 transition-all translate-x-[-10px] group-hover/btn:translate-x-0"
+                />
+              </button>
             </div>
 
             {/* Equipa */}
@@ -843,41 +919,42 @@ export function DashboardAdmin() {
           </div>
         </>
       )}
-{view === "hoje" && (
-  <div className="space-y-4">
-    <button
-      onClick={onVoltar}
-      className="p-3 bg-white/10 rounded-full text-[#b5820e] hover:bg-[#b5820e] hover:text-black transition-all"
-    >
-      <ChevronLeft size={24} />
-    </button>
+      {view === "hoje" && (
+        <div className="space-y-4">
+          <button
+            onClick={onVoltar}
+            className="p-3 bg-white/10 rounded-full text-[#b5820e] hover:bg-[#b5820e] hover:text-black transition-all"
+          >
+            <ChevronLeft size={24} />
+          </button>
 
-    {loading ? (
-      <p className="text-gray-400 italic text-center py-10">
-        Sincronizando fuso horário...
-      </p>
-    ) : agendamentosHoje.length > 0 ? (
-      agendamentosHoje.slice(0, 5).map((item: any) => (
-        <Agenda_Item
-          key={item.id}
-          {...item}
-          dataIso={item.dataIso}
-          servico={`${item.servico} • ${item.profissional}`}
-          clickable={true}
-          onItemClick={() => setView("todos-agendamentos")}
-          onCancelar={() => handleCancelar(item.id)}
-          onRemarcar={() => handleReagendar(item.id)}
-        />
-      ))
-    ) : (
-      <div className="p-10 border-2 border-dashed rounded-3xl text-center text-gray-400 italic">
-        Nenhum agendamento para hoje (
-        {dayjs().tz(FUSO_CABO_VERDE).format("DD/MM/YYYY")}).
-      </div>
-    )}
-  </div>
-)}
-
+          {loading ? (
+            <p className="text-gray-400 italic text-center py-10">
+              Sincronizando fuso horário...
+            </p>
+          ) : agendamentosHoje.length > 0 ? (
+            agendamentosHoje
+              .slice(0, 5)
+              .map((item: any) => (
+                <Agenda_Item
+                  key={item.id}
+                  {...item}
+                  dataIso={item.dataIso}
+                  servico={`${item.servico} • ${item.profissional}`}
+                  clickable={true}
+                  onItemClick={() => setView("todos-agendamentos")}
+                  onCancelar={() => handleCancelar(item.id)}
+                  onRemarcar={() => handleReagendar(item.id)}
+                />
+              ))
+          ) : (
+            <div className="p-10 border-2 border-dashed rounded-3xl text-center text-gray-400 italic">
+              Nenhum agendamento para hoje (
+              {dayjs().tz(FUSO_CABO_VERDE).format("DD/MM/YYYY")}).
+            </div>
+          )}
+        </div>
+      )}
 
       {/* ===== VIEWS DINÂMICAS ===== */}
       {view === "promocoes" && (
@@ -914,12 +991,16 @@ export function DashboardAdmin() {
         />
       )}
       {view === "financeiro" && (
-        <Relatorios_Financeiros onVoltar={() => setView("home")} />
+        <Relatorios_Financeiros
+          agendamentos={agendamentos}
+          servicos={servicos}
+          onVoltar={() => setView("home")} // Faz voltar para a home
+        />
       )}
+
       {view === "logs" && (
         <Auditoria_Logs logs={logsAuditoria} onVoltar={() => setView("home")} />
       )}
-
       {view === "equipa" && (
         <Gerir_Funcionarios
           funcionarios={funcionarios}
@@ -928,11 +1009,11 @@ export function DashboardAdmin() {
             setFuncionarioSelecionado(null);
             setView("novo-funcionario");
           }}
-          onEditarFuncionario={(func) => {
+          onEditarFuncionario={(func: Funcionario) => {
             setFuncionarioSelecionado(func);
             setView("novo-funcionario");
           }}
-          onRemover={handleRemoverFuncionario}
+          onRemover={handleRemover}
         />
       )}
 
@@ -1020,9 +1101,10 @@ function StatCard({ title, value, icon, color, onClick }: StatCardProps) {
   );
 }
 
-function ServiceBadge({ name, count }: ServiceBadgeProps) {
+function ServiceBadge({ name, count, onEdit, onDelete }: ServiceBadgeProps) {
   return (
-    <div className="flex items-center justify-between p-2 sm:p-4 bg-gray-50 rounded-2xl transition hover:bg-white hover:shadow-md">
+    // Adicionei 'group' para mostrar os botões melhor ao passar o mouse
+    <div className="flex items-center justify-between p-2 sm:p-4 bg-gray-50 rounded-2xl transition hover:bg-white hover:shadow-md mb-2 group">
       <div className="flex items-center gap-1 sm:gap-2">
         <Scissors size={14} className="text-[#b5820e]" />
         <span className="text-xs sm:text-sm font-medium text-gray-700">
@@ -1031,6 +1113,24 @@ function ServiceBadge({ name, count }: ServiceBadgeProps) {
         <span className="text-xs sm:text-sm font-bold text-gray-500 ml-2">
           - {count}
         </span>
+      </div>
+
+      {/* Botões de Ação */}
+      <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+        <button
+          onClick={onEdit}
+          className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition"
+          title="Editar"
+        >
+          <Pencil size={14} />
+        </button>
+        <button
+          onClick={onDelete}
+          className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition"
+          title="Remover"
+        >
+          <Trash2 size={14} />
+        </button>
       </div>
     </div>
   );

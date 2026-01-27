@@ -3,32 +3,27 @@ import {
   Calendar,
   Clock,
   ChevronLeft,
-  Star,
+  Eye,
   Plus,
-  History,
   CheckCircle2,
+  List,
 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
 
 import { FuncionarioService } from "../services/Funcionario.service";
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc.js";
 import timezone from "dayjs/plugin/timezone.js";
 
-
-
-
 // Imports de Componentes
 import { Agenda_Item } from "../components/Agenda_Item";
 import { Gestao_Disponibilidade } from "../components/Gestao_Disponibilidade";
 import { Form_Agendamento_Funcionario } from "../components/Form_Agendamento_Funcionario";
-import { Lista_Clientes } from "../components/Lista_Clientes";
 import { safeArray } from "../utils/dataHelpers";
 import { PanoramaDisponibilidade } from "../components/PanoramaDisponibilidade";
 
 export function DashboardFuncionario() {
   const [view, setView] = useState<
-    "home" | "agenda" | "historico" | "disponibilidade" | "novo"|"ver"
+    "home" | "agenda" | "historico" | "disponibilidade" | "novo" | "ver"
   >("home");
   const [agenda, setAgenda] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -39,40 +34,42 @@ export function DashboardFuncionario() {
 
   const hojeISO = new Date().toLocaleDateString("sv-SE");
   const hojeDisplay = new Date().toLocaleDateString("pt-PT");
-dayjs.extend(utc);
-dayjs.extend(timezone);
+  dayjs.extend(utc);
+  dayjs.extend(timezone);
 
-const FUSO_CABO_VERDE = "Atlantic/Cape_Verde";
+  const FUSO_CABO_VERDE = "Atlantic/Cape_Verde";
   const carregarDados = async () => {
     try {
       setLoading(true);
       const dados = await FuncionarioService.listarMinhaAgenda();
       const agendaArray = safeArray<any>(dados);
 
-     const agendaFormatada = agendaArray
-  .map((item: any) => {
-    if (!item.data_hora_inicio) return null;
+      const agendaFormatada = agendaArray
+        .map((item: any) => {
+          if (!item.data_hora_inicio) return null;
 
-    const dataHoraCVE = dayjs
-      .utc(item.data_hora_inicio)
-      .tz(FUSO_CABO_VERDE);
+          const dataHoraCVE = dayjs
+            .utc(item.data_hora_inicio)
+            .tz(FUSO_CABO_VERDE);
 
-    return {
-      id: item.id,
-      cliente: item.nome_cliente || "Cliente",
-      telefone: item.telefone_cliente || "",
-      servico: item.profissional_nome
-        ? `${item.nome_servico} • ${item.profissional_nome}`
-        : item.nome_servico,
-      dataISO: dataHoraCVE.format("YYYY-MM-DD"),
-      data: dataHoraCVE.format("YYYY-MM-DDTHH:mm:ss"),
-      hora: dataHoraCVE.format("HH:mm"),
-      timestamp: dataHoraCVE.valueOf(),
-      status: String(item.status || "pendente").toLowerCase().trim(),
-    };
-  })
-  .filter(Boolean);
-
+          return {
+            id: item.id,
+            cliente: item.nome_cliente || "Cliente",
+            telefone: item.telefone_cliente || "",
+            servico: item.profissional_nome
+              ? `${item.nome_servico} • ${item.profissional_nome}`
+              : item.nome_servico,
+            profissional: item.profissional_nome || "Não definido",
+            dataISO: dataHoraCVE.format("YYYY-MM-DD"),
+            data: dataHoraCVE.format("YYYY-MM-DDTHH:mm:ss"),
+            hora: dataHoraCVE.format("HH:mm"),
+            timestamp: dataHoraCVE.valueOf(),
+            status: String(item.status || "pendente")
+              .toLowerCase()
+              .trim(),
+          };
+        })
+        .filter(Boolean);
 
       setAgenda(agendaFormatada);
     } catch (error) {
@@ -188,11 +185,28 @@ const FUSO_CABO_VERDE = "Atlantic/Cape_Verde";
               <ChevronLeft size={16} /> Voltar ao Início
             </button>
           )}
-          <h1 className="md:text-4xl text-2xl font-serif font-black text-black">
-            {view === "historico"
-              ? "Histórico de Atendimentos"
-              : "Painel da Recepcionista"}
-          </h1>
+
+          {view === "home" && (
+            <section>
+              <h1 className="md:text-4xl text-2xl font-serif font-black text-black">
+                Painel da Recepcionista
+              </h1>
+              <p className="mt-4 max-w-2xl text-gray-700 text-sm md:text-base leading-relaxed">
+                <span className="font-bold text-gray-900 text-lg md:text-xl">
+                  Olá, seja bem-vinda! 👋✨
+                </span>
+                <br />
+                <span className="text-gray-600">
+                  Aqui você{" "}
+                  <span className="font-semibold text-[#b5820e]">
+                    gere agendamentos 📅
+                  </span>
+                  , atende clientes e mantém tudo organizado de forma prática e
+                  eficiente.
+                </span>
+              </p>
+            </section>
+          )}
         </div>
         <div className="bg-amber-50 text-[#b5820e] px-6 py-2 rounded-xl shadow-sm border border-amber-100 flex items-center gap-3">
           <Calendar size={14} />
@@ -220,8 +234,7 @@ const FUSO_CABO_VERDE = "Atlantic/Cape_Verde";
                 <StatCard
                   title="Agendamentos de Hoje"
                   value={agendaDeHoje.length}
-                  icon={Clock}
-                  onClick={() => setView("agenda")}
+                  icon={List}
                 />
                 <StatCard
                   title="Agendamentos Futuros"
@@ -232,22 +245,15 @@ const FUSO_CABO_VERDE = "Atlantic/Cape_Verde";
                 <StatCard
                   title="Histórico de Agendamentos Passados"
                   value={historicoAgendamentos.length}
-                  icon={Clock}
+                  icon={Calendar}
                   onClick={() => setView("historico")}
                 />
                 <StatCard
                   title=" Agenda dos Funcionarios"
                   value="VER"
-                  icon={Plus}
+                  icon={Eye}
                   onClick={() => setView("ver")}
                 />
-                <StatCard
-                  title="Novo Agendamento"
-                  value="Criar"
-                  icon={Plus}
-                  onClick={() => setView("novo")}
-                />
-
               </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-20">
@@ -268,6 +274,7 @@ const FUSO_CABO_VERDE = "Atlantic/Cape_Verde";
                             onCancelar={() => handleCancelar(item.id)}
                             onRemarcar={() => setRemarcandoItem(item)}
                           />
+
                           {(item.status === "confirmado" ||
                             item.status === "reagendado") && (
                             <button
@@ -291,18 +298,28 @@ const FUSO_CABO_VERDE = "Atlantic/Cape_Verde";
                 </div>
 
                 <div className="space-y-8">
-                  <CreateAppointmentCard onClick={() => setView("novo")} />
-                  <div className="bg-black rounded-[2.5rem] p-10 text-white shadow-2xl">
-                    <h3 className="text-xl font-bold text-[#b5820e] mb-4">
-                      Configurar Agenda
-                    </h3>
+                  <div className="bg-black rounded-[2.5rem] p-10 md:mb-30 text-white shadow-2xl relative overflow-hidden">
+                    <div className="bg-black/10 flex gap-5 group-hover/btn:bg-black/5 p-1 rounded-lg transition-colors md:mb-2">
+                      <Calendar size={27} />
+
+                      <h3 className="text-xl font-bold text-[#b5820e] mb-4 uppercase tracking-widest">
+                        <span className="text-white"> Configurar</span> <br />{" "}
+                        Minha Agenda
+                      </h3>
+                    </div>
+                    <p className="text-gray-400 text-xs mb-8 leading-relaxed">
+                      Gerencie sua disponibilidade diária, mensal e anual para o
+                      sistema automatizado.
+                    </p>
                     <button
                       onClick={() => setView("disponibilidade")}
-                      className="w-full py-5 bg-[#b5820e] text-black rounded-2xl font-black uppercase text-xs"
+                      className="w-full py-5 bg-[#b5820e] text-black rounded-2xl font-black uppercase text-xs tracking-widest hover:opacity-90 transition shadow-lg"
                     >
-                      Ajustar Disponibilidade
+                      Configurar Disponibilidade
                     </button>
                   </div>
+
+                  <CreateAppointmentCard onClick={() => setView("novo")} />
                 </div>
               </div>
             </>
@@ -311,6 +328,19 @@ const FUSO_CABO_VERDE = "Atlantic/Cape_Verde";
           {/* OUTRAS VIEWS */}
           {view === "historico" && (
             <div className="space-y-6">
+              <div className="mb-6">
+                <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900 uppercase tracking-tight flex items-center gap-2">
+                  🕒 Histórico de Agendamentos Passados
+                </h1>
+                <p className="mt-2 text-gray-600 text-sm md:text-base leading-relaxed">
+                  Aqui você confere todos os agendamentos{" "}
+                  <span className="font-semibold text-[#b5820e]">
+                    concluídos
+                  </span>
+                  .
+                </p>
+              </div>
+
               <div className="space-y-4">
                 {historicoAgendamentos.map((item) => (
                   <Agenda_Item key={item.id} {...item} clickable={false} />
@@ -319,12 +349,21 @@ const FUSO_CABO_VERDE = "Atlantic/Cape_Verde";
             </div>
           )}
 
-          
           {view === "agenda" && (
             <div className="space-y-6">
-              <h2 className="text-2xl font-black uppercase">
-                Próximos Confirmados
-              </h2>
+              <div className="mb-6">
+                <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900 uppercase tracking-tight flex items-center gap-2">
+                  📅 Próximos Agendamentos
+                </h1>
+                <p className="mt-2 text-gray-600 text-sm md:text-base leading-relaxed">
+                  Aqui você acompanha todos os agendamentos{" "}
+                  <span className="font-semibold text-[#b5820e]">
+                    confirmados
+                  </span>{" "}
+                  para os próximos dias.
+                </p>
+              </div>
+
               <div className="space-y-4">
                 {proximosAgendamentos.map((item) => (
                   <div key={item.id} className="relative group">
@@ -348,9 +387,7 @@ const FUSO_CABO_VERDE = "Atlantic/Cape_Verde";
 
       {/* COMPONENTES EXTERNOS */}
       {view === "disponibilidade" && <Gestao_Disponibilidade />}
-      {view ==="ver" &&
-            <PanoramaDisponibilidade/>
-          }
+      {view === "ver" && <PanoramaDisponibilidade />}
 
       {view === "novo" && (
         <Form_Agendamento_Funcionario
@@ -454,4 +491,3 @@ function CreateAppointmentCard({ onClick }: { onClick: () => void }) {
     </div>
   );
 }
-

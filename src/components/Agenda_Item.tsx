@@ -6,6 +6,7 @@ export interface AgendaItemProps {
   cliente: string;
   telefone: string;
   servico: string;
+  profissional: string;
   data: string;
   hora: string;
   
@@ -38,6 +39,7 @@ function statusClass(status: AgendaItemProps["status"]) {
 export function Agenda_Item({
   cliente,
   servico,
+  profissional,
   data,
   hora,
   telefone,
@@ -96,11 +98,17 @@ export function Agenda_Item({
               📞 {telefoneLabel}
             </span>
           </div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="text-[10px] sm:text-xs text-gray-500 font-semibold uppercase tracking-wide">
-              {servicoLabel}
-            </span>
-          </div>
+          <div className="flex items-center gap-1 mb-1 flex-wrap">
+  <span className="text-[11px] sm:text-sm font-semibold text-gray-800">
+    {servicoLabel}
+  </span>
+  {profissional && (
+    <span className="text-[10px] sm:text-xs text-gray-500 italic ml-2">
+      {profissional}
+    </span>
+  )}
+</div>
+
           {obs && (
             <p className="text-[10px] text-blue-500 mt-2 italic">{obs}</p>
           )}

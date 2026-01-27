@@ -1,6 +1,6 @@
 // src/pages/DashboardProfissional.tsx
 import React, { useEffect, useState, useMemo } from "react";
-import { Clock, ChevronLeft, Star, CheckCircle, Scissors } from "lucide-react";
+import { Clock, ChevronLeft, Star, CheckCircle, Scissors, List, Calendar, ListCheck } from "lucide-react";
 import { ProfissionalService } from "../services/Profissional.service";
 import { Agenda_Item } from "../components/Agenda_Item";
 import { safeArray } from "../utils/dataHelpers";
@@ -13,15 +13,15 @@ dayjs.extend(timezone);
 
 const FUSO_CABO_VERDE = "Atlantic/Cape_Verde";
 
-
-
 export function DashboardProfissional() {
-  const [view, setView] = useState<"home" | "agenda" | "historico"|"ver">("home");
+  const [view, setView] = useState<"home" | "agenda" | "historico" | "ver">(
+    "home",
+  );
   const [agenda, setAgenda] = useState<any[]>([]);
   const [perfil, setPerfil] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
-   const formatarLocal = (dt: dayjs.Dayjs) => {
+  const formatarLocal = (dt: dayjs.Dayjs) => {
     return {
       iso: dt.format("YYYY-MM-DD"),
       display: dt.format("DD/MM/YYYY"),
@@ -38,7 +38,7 @@ export function DashboardProfissional() {
         ProfissionalService.verHistorico(),
         ProfissionalService.obterPerfil(),
       ]);
-
+      console.log("DADOS DO PERFIL QUE CHEGARAM:", dadosPerfil);
       setPerfil(dadosPerfil);
 
       const todosOsDados = [
@@ -62,7 +62,7 @@ export function DashboardProfissional() {
             id: item.id,
             cliente: item.nome_cliente || "Cliente",
             telefone: item.telefone_cliente || "Sem telefone",
-            servico: item.nome_servico,
+            servico: item.nome_servico || "Serviço não informado",
             hora: horaStr,
             data_hora_inicio: dtCVE.toDate(),
             dataFormatada: infoData.display,
@@ -140,30 +140,57 @@ export function DashboardProfissional() {
 
   return (
     <div className="min-h-screen bg-white p-6 md:p-10">
-      <section className="mb-8 border-b pb-6 flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
-        <div>
-          {view !== "home" && (
-            <button
-              onClick={() => setView("home")}
-              className="flex items-center gap-2 text-[#b5820e] text-xs uppercase font-bold mb-4"
-            >
-              <ChevronLeft size={16} /> Voltar ao Início
-            </button>
-          )}
-          <h1 className="text-3xl font-black text-black">
-            Painel do Profissional
-          </h1>
-          <h2 className="text-xl font-bold text-gray-700 mt-2">
-            Olá, <span className="text-[#b5820e]">{perfil?.nome}</span>
-          </h2>
-          <p className="text-gray-500 italic text-sm flex items-center gap-1">
-            Serviço Associado: {perfil?.servico_associado}
+
+      {view !== "home" && (
+  <button
+    onClick={() => setView("home")}
+    className="flex items-center gap-2 text-[#b5820e] text-xs uppercase font-bold mb-4 
+               hover:text-[#d29f00] hover:underline transition-colors duration-200"
+  >
+    <ChevronLeft size={16} className="shadow-sm" /> Voltar ao Início
+  </button>
+)}
+
+      {view === "home" && (
+  <section className="mb-8 border-b pb-6 flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
+    <div className="flex-1">
+      <div className="bg-white p-4 md:p-4 ">
+        <h1 className="text-3xl md:text-4xl font-extrabold text-black mb-2">
+          Painel do Profissional
+        </h1>
+
+        <h2 className="text-xl md:text-2xl font-bold text-gray-700 mb-1">
+          Olá, <span className="text-[#b5820e]">{perfil?.nome}</span> 
+        </h2>
+
+        {perfil?.servico_associado && (
+          <p className="text-sm md:text-base text-gray-500 font-medium mb-2 flex items-center gap-1">
+             Serviço:{" "}
+            <span className="text-[#b5820e]">{perfil.servico_associado}</span>
           </p>
-        </div>
-        <div className="bg-amber-50 px-4 py-2 rounded-xl border border-amber-200 flex items-center gap-2 font-black text-[#b5820e]">
-          <Star size={20} fill="#b5820e" /> {perfil?.avaliacao}
-        </div>
-      </section>
+        )}
+
+        <p className="text-gray-600 italic text-sm md:text-base leading-relaxed">
+          Este é o seu espaço para <span className="font-semibold">gerir sua agenda</span>, 
+          acompanhar seus clientes e manter tudo organizado. <br />
+          Estamos prontos para apoiar você em cada atendimento 💼✂️
+        </p>
+      </div>
+    </div>
+
+    <div className="flex-shrink-0 flex items-center gap-3 bg-amber-50 px-6 py-2 rounded-xl shadow-sm border border-amber-100">
+      <Calendar size={20} className="text-[#b5820e]" />
+      <span className="text-xs font-bold uppercase text-[#b5820e]">
+        {new Date().toLocaleDateString("pt-PT", {
+          day: "2-digit",
+          month: "long",
+          year: "numeric",
+        })}
+      </span>
+    </div>
+  </section>
+)}
+
 
       {loading ? (
         <p className="text-center py-20 text-gray-400 animate-pulse">
@@ -177,25 +204,24 @@ export function DashboardProfissional() {
                 <StatCard
                   title="Agendamentos de hoje"
                   value={agendaDeHoje.length}
-                  icon={CheckCircle}
+                  icon={List}
                 />{" "}
                 <StatCard
                   title="agendamentos futuros"
                   value={agendaCompleta.length}
-                  icon={Clock}
+                  icon={Calendar}
                   onClick={() => setView("agenda")}
                 />
                 <StatCard
                   title="Agendamentos Concluídos"
                   value={historicoConcluidos.length}
-                  icon={CheckCircle}
+                  icon={Clock}
                   onClick={() => setView("historico")}
                 />{" "}
-
                 <StatCard
                   title="Ver minha agenda"
                   value={""}
-                  icon={CheckCircle}
+                  icon={ListCheck}
                   onClick={() => setView("ver")}
                 />
               </div>
@@ -256,7 +282,7 @@ export function DashboardProfissional() {
             </div>
           )}
 
-          {view === "ver" && <PanoramaDisponibilidade/>}
+          {view === "ver" && <PanoramaDisponibilidade />}
         </>
       )}
     </div>
