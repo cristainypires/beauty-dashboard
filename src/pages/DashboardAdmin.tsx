@@ -85,7 +85,7 @@ interface Funcionario {
   email: string;
   telefone: string;
   data_nascimento: string;
-  palavra_passe?: string; 
+  palavra_passe?: string;
   status: "Ativo" | "Inativo";
 }
 
@@ -112,8 +112,8 @@ interface Servico {
 
 export interface Promocao {
   id: number;
-  titulo: string;
-  validade: string;
+  titulo: string; // Antes era 'nome'
+  validade: string; // Antes era 'data_fim'
   servicos_ids: number[];
   ativo: boolean;
 }
@@ -125,6 +125,18 @@ export function DashboardAdmin() {
   const [loading, setLoading] = useState(true);
   const onVoltar = () => {
     setView("home");
+  };
+
+  const formatarDataExibicao = (dataStr: any) => {
+    if (!dataStr) return "Data não definida";
+    const data = new Date(dataStr);
+    if (isNaN(data.getTime())) return "Data inválida";
+
+    return data.toLocaleDateString("pt-PT", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    });
   };
 
   // 2. Função para carregar agendamentos do Back-end
@@ -331,17 +343,23 @@ export function DashboardAdmin() {
   };
 
   // 3. Função para Remover
- const handleRemover = async (id: number) => {
-  if (window.confirm("Tem certeza que deseja apagar este funcionário permanentemente?")) {
-    try {
-      await removerFuncionario(id);
-      alert("Funcionário removido com sucesso!");
-      carregarFuncionarios(); // Recarrega a lista
-    } catch (error) {
-      alert("Erro ao remover: este profissional pode ter agendamentos registrados.");
+  const handleRemover = async (id: number) => {
+    if (
+      window.confirm(
+        "Tem certeza que deseja apagar este funcionário permanentemente?",
+      )
+    ) {
+      try {
+        await removerFuncionario(id);
+        alert("Funcionário removido com sucesso!");
+        carregarFuncionarios(); // Recarrega a lista
+      } catch (error) {
+        alert(
+          "Erro ao remover: este profissional pode ter agendamentos registrados.",
+        );
+      }
     }
-  }
-};
+  };
 
   ////////////////////////////////////////
   //Servicos
@@ -423,16 +441,15 @@ export function DashboardAdmin() {
       const dados = await PromocaoService.listar();
       const promosArray = Array.isArray(dados) ? dados : dados?.data || [];
 
-      // Formata os campos para garantir que o componente receba o que espera
       const formatadas = promosArray.map((p: any) => ({
         ...p,
-        // Se no banco o nome for diferente, ajuste aqui:
+        // Garante compatibilidade independente de como o back retorna
         titulo: p.titulo || p.nome || "Promoção Sem Nome",
         validade: p.validade || p.data_fim || p.data_validade,
       }));
 
       setPromocoes(formatadas);
-      console.log("[DEBUG] Promoções formatadas:", formatadas);
+      console.log("[DEBUG] Promoções carregadas no Admin:", formatadas);
     } catch (error) {
       console.error("Erro ao carregar promoções:", error);
     }
@@ -461,6 +478,11 @@ export function DashboardAdmin() {
       alert("Erro ao desativar promoção.");
     }
   };
+
+  
+
+
+  
 
   useEffect(() => {
     carregarPromocoes();
@@ -545,7 +567,7 @@ export function DashboardAdmin() {
   };
 
   return (
-<div className="min-h-screen bg-white sm:p-8 md:px-20 md:py-10">
+    <div className="min-h-screen bg-white sm:p-8 md:px-20 md:py-10">
       {/* ===== HOME ===== */}
       {view === "home" && (
         <>
@@ -862,43 +884,56 @@ export function DashboardAdmin() {
 
             {/* Promoções */}
             {/* Card de Promoções Dinâmico na Home */}
-            <div className="bg-gray-800 text-white rounded-3xl shadow-sm border border-gray-700 p-4 sm:p-6">
-              <div className="flex items-center justify-between mb-4 sm:mb-6">
-                <h2 className="text-lg sm:text-xl font-bold text-[#b5820e]">
-                  Promoções
-                </h2>
-                <TrendingUp className="text-[#b5820e]" size={18} />
+            <div className="bg-gray-800 text-white rounded-[2rem] shadow-xl border border-gray-700 p-6 flex flex-col justify-between group hover:border-[#b5820e]/30 transition-all duration-500">
+              {/* CABEÇALHO DO CARD */}
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h2 className="text-xl font-serif font-black uppercase tracking-tighter text-[#b5820e]">
+                    Campanhas & Promoções
+                  </h2>
+                  <div className="flex items-center gap-1.5 mt-1">
+                    <span className="h-1.5 w-1.5 bg-[#b5820e] rounded-full animate-pulse" />
+                    <p className="text-[9px] font-bold text-gray-500 uppercase tracking-widest">
+                      {promocoes.length} campanhas no total
+                    </p>
+                  </div>
+                </div>
+                <div className="p-3 bg-gray-900 rounded-2xl">
+                  <TrendingUp className="text-[#b5820e]" size={20} />
+                </div>
               </div>
 
-              {/* Lista de promoções vinda do Back-end */}
-              <div className="space-y-2 sm:space-y-3">
+              {/* LISTA DE PROMOÇÕES (SÓ AS 2 PRIMEIRAS) */}
+              <div className="space-y-3">
                 {promocoes.length === 0 ? (
-                  <p className="text-gray-500 text-xs italic">
-                    Nenhuma promoção registada.
-                  </p>
+                  <div className="py-8 text-center border-2 border-dashed border-gray-700 rounded-2xl">
+                    <p className="text-gray-500 text-xs italic">
+                      Nenhuma promoção registada.
+                    </p>
+                  </div>
                 ) : (
                   promocoes.slice(0, 2).map((promo) => (
                     <div
                       key={promo.id}
-                      className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-2 sm:p-4 bg-gray-900 rounded-2xl"
+                      className="flex items-center justify-between p-4 bg-gray-900/50 rounded-2xl border border-gray-700/50 hover:border-[#b5820e]/50 transition-colors"
                     >
-                      <div>
-                        <p className="text-xs sm:text-sm font-bold text-white">
+                      <div className="flex flex-col">
+                        <p className="text-sm font-black text-white uppercase tracking-tight">
                           {promo.titulo}
                         </p>
-                        <p className="text-[8px] sm:text-[10px] text-gray-400">
-                          Válido até{" "}
-                          {parseDate(promo.validade)?.toLocaleDateString(
-                            "pt-PT",
-                          ) || "Data não definida"}
-                        </p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <Calendar size={12} className="text-[#b5820e]" />
+                          <p className="text-[10px] font-bold text-gray-500 uppercase">
+                            Até {formatarDataExibicao(promo.validade)}
+                          </p>
+                        </div>
                       </div>
 
                       <span
-                        className={`text-[8px] sm:text-[10px] font-bold px-2 py-1 rounded-full mt-1 sm:mt-0 ${
+                        className={`text-[8px] font-black px-3 py-1.5 rounded-full uppercase tracking-widest ${
                           promo.ativo
-                            ? "text-green-400 bg-green-900"
-                            : "text-red-500 bg-red-900"
+                            ? "text-green-400 bg-green-900/30 border border-green-900"
+                            : "text-red-500 bg-red-900/30 border border-red-900"
                         }`}
                       >
                         {promo.ativo ? "Ativa" : "Inativa"}
@@ -908,12 +943,13 @@ export function DashboardAdmin() {
                 )}
               </div>
 
-              {/* Botão para gerir todas as promoções */}
+              {/* BOTÃO DE AÇÃO */}
               <button
                 onClick={() => setView("promocoes")}
-                className="w-full mt-4 sm:mt-6 py-2 sm:py-3 bg-[#b5820e] text-black rounded-2xl font-bold text-xs sm:text-sm flex items-center justify-center gap-1 sm:gap-2 hover:opacity-90 transition"
+                className="w-full mt-6 py-4 bg-[#b5820e] text-black rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] flex items-center justify-center gap-2 hover:bg-white transition-all duration-300 shadow-lg shadow-[#b5820e]/10"
               >
-                <Plus size={16} /> Criar / Gerir Promoções ({promocoes.length})
+                <Plus size={16} />
+                Gerir Ofertas de Luxo
               </button>
             </div>
           </div>
@@ -960,11 +996,11 @@ export function DashboardAdmin() {
       {view === "promocoes" && (
         <Promocoes_Admin
           promocoes={promocoes}
-          servicosReais={servicos} //  Passando os serviços do banco
+          servicosReais={servicos}
           onVoltar={() => setView("home")}
-          onAtivar={handleAtivarPromocao}
-          onDesativar={handleDesativarPromocao}
-          onAtualizar={() => carregarPromocoes()} // Passa a função para o filho se atualizar
+          onAtivar={handleAtivarPromocao} // Passa a função de ativar
+          onDesativar={handleDesativarPromocao} // Passa a função de desativar
+          onAtualizar={carregarPromocoes} // <--- ESSA É A FUNÇÃO DE ATUALIZAR
         />
       )}
 
