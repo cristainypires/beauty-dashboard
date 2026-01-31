@@ -19,9 +19,10 @@ function BypassLogic() {
       console.log("Sessão sincronizada com sucesso!")
 
       // Redireciona para a página correta conforme a pasta
-      if (role === 'admin') router.push('/admin')
-      else if (role === 'funcionario' || role === 'recepcionista') router.push('/recepcao')
-      else if (role === 'profissional') router.push('/profissional')
+     // ... dentro do useEffect
+if (role === 'admin') router.push('/DashboardAdmin') // Nome exato do arquivo na pasta pages
+else if (role === 'funcionario' || role === 'recepcionista') router.push('/DashboardFuncionario')
+else if (role === 'profissional') router.push('/DashboardProfissional')
     } else {
       // Se falhar, volta para o site principal
       window.location.href = "https://maddietavares.cv/login"
