@@ -1,6 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: 'export', // ISSO gera a pasta 'out'
-  images: { unoptimized: true } // Necessário para exportação estática
+  output: 'export', // Adicione esta linha
+  // ... outras configurações se houver
 };
+
 export default nextConfig;
