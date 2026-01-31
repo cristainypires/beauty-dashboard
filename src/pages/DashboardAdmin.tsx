@@ -118,7 +118,7 @@ export interface Promocao {
   ativo: boolean;
 }
 
-export function DashboardAdmin() {
+export default function DashboardAdmin() {
   const [agendamentos, setAgendamentos] = useState<Agendamento[]>([]);
   const [servicos, setServicos] = useState<Servico[]>([]);
   const [logsAuditoria, setLogsAuditoria] = useState<LogEntry[]>([]);

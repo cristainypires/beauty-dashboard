@@ -13,7 +13,7 @@ dayjs.extend(timezone);
 
 const FUSO_CABO_VERDE = "Atlantic/Cape_Verde";
 
-export function DashboardProfissional() {
+export default function DashboardProfissional() {
   const [view, setView] = useState<"home" | "agenda" | "historico" | "ver">(
     "home",
   );

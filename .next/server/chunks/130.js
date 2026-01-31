@@ -1,0 +1,50 @@
+"use strict";exports.id=130,exports.ids=[130],exports.modules={1323:(e,t)=>{Object.defineProperty(t,"l",{enumerable:!0,get:function(){return function e(t,r){return r in t?t[r]:"then"in t&&"function"==typeof t.then?t.then(t=>e(t,r)):"function"==typeof t&&"default"===r?t:void 0}}})},1462:(e,t,r)=>{r.d(t,{Z:()=>d});var o=r(6689);/**
+ * @license lucide-react v0.454.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */let a=e=>e.replace(/([a-z0-9])([A-Z])/g,"$1-$2").toLowerCase(),s=(...e)=>e.filter((e,t,r)=>!!e&&""!==e.trim()&&r.indexOf(e)===t).join(" ").trim();/**
+ * @license lucide-react v0.454.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */var n={xmlns:"http://www.w3.org/2000/svg",width:24,height:24,viewBox:"0 0 24 24",fill:"none",stroke:"currentColor",strokeWidth:2,strokeLinecap:"round",strokeLinejoin:"round"};/**
+ * @license lucide-react v0.454.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */let l=(0,o.forwardRef)(({color:e="currentColor",size:t=24,strokeWidth:r=2,absoluteStrokeWidth:a,className:l="",children:d,iconNode:i,...c},p)=>(0,o.createElement)("svg",{ref:p,...n,width:t,height:t,stroke:e,strokeWidth:a?24*Number(r)/Number(t):r,className:s("lucide",l),...c},[...i.map(([e,t])=>(0,o.createElement)(e,t)),...Array.isArray(d)?d:[d]])),d=(e,t)=>{let r=(0,o.forwardRef)(({className:r,...n},d)=>(0,o.createElement)(l,{ref:d,iconNode:t,className:s(`lucide-${a(e)}`,r),...n}));return r.displayName=`${e}`,r}},8088:(e,t,r)=>{r.d(t,{Z:()=>o});/**
+ * @license lucide-react v0.454.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */let o=(0,r(1462).Z)("Calendar",[["path",{d:"M8 2v4",key:"1cmpym"}],["path",{d:"M16 2v4",key:"4m81vk"}],["rect",{width:"18",height:"18",x:"3",y:"4",rx:"2",key:"1hopcy"}],["path",{d:"M3 10h18",key:"8toen8"}]])},7553:(e,t,r)=>{r.d(t,{Z:()=>o});/**
+ * @license lucide-react v0.454.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */let o=(0,r(1462).Z)("ChevronLeft",[["path",{d:"m15 18-6-6 6-6",key:"1wnfg3"}]])},7969:(e,t,r)=>{r.d(t,{Z:()=>o});/**
+ * @license lucide-react v0.454.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */let o=(0,r(1462).Z)("List",[["path",{d:"M3 12h.01",key:"nlz23k"}],["path",{d:"M3 18h.01",key:"1tta3j"}],["path",{d:"M3 6h.01",key:"1rqtza"}],["path",{d:"M8 12h13",key:"1za7za"}],["path",{d:"M8 18h13",key:"1lx6n3"}],["path",{d:"M8 6h13",key:"ik3vkj"}]])},220:(e,t,r)=>{r.d(t,{Z:()=>o});/**
+ * @license lucide-react v0.454.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */let o=(0,r(1462).Z)("RefreshCw",[["path",{d:"M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8",key:"v9h5vc"}],["path",{d:"M21 3v5h-5",key:"1q7to0"}],["path",{d:"M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16",key:"3uifl3"}],["path",{d:"M8 16H3v5",key:"1cv678"}]])},718:(e,t,r)=>{r.d(t,{Z:()=>o});/**
+ * @license lucide-react v0.454.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */let o=(0,r(1462).Z)("User",[["path",{d:"M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2",key:"975kel"}],["circle",{cx:"12",cy:"7",r:"4",key:"17ys0d"}]])},6958:(e,t,r)=>{Object.defineProperty(t,"__esModule",{value:!0}),Object.defineProperty(t,"default",{enumerable:!0,get:function(){return d}});let o=r(167),a=r(997),s=o._(r(6689)),n=r(7201);async function l(e){let{Component:t,ctx:r}=e;return{pageProps:await (0,n.loadGetInitialProps)(t,r)}}class d extends s.default.Component{render(){let{Component:e,pageProps:t}=this.props;return(0,a.jsx)(e,{...t})}}d.origGetInitialProps=l,d.getInitialProps=l,("function"==typeof t.default||"object"==typeof t.default&&null!==t.default)&&void 0===t.default.__esModule&&(Object.defineProperty(t.default,"__esModule",{value:!0}),Object.assign(t.default,t),e.exports=t.default)},2651:(e,t,r)=>{r.d(t,{u:()=>l});var o=r(997);r(6689);var a=r(718),s=r(220);/**
+ * @license lucide-react v0.454.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */let n=(0,r(1462).Z)("CircleX",[["circle",{cx:"12",cy:"12",r:"10",key:"1mglay"}],["path",{d:"m15 9-6 6",key:"1uzhvr"}],["path",{d:"m9 9 6 6",key:"z0biqf"}]]);function l({cliente:e,servico:t,profissional:r,data:l,hora:d,telefone:i,status:c,obs:p,clickable:u=!0,onItemClick:m,onClienteClick:x,onRemarcar:f,onCancelar:h}){let g="confirmado"===c,y=e&&e.trim()?e:"Sem nome",b=i&&i.trim()?i:"Sem telefone",v=t&&t.trim()?t:"Sem servi\xe7o",R=c&&c.trim()?c:"Sem status";return(0,o.jsxs)("div",{className:"group flex flex-col md:flex-row items-start md:items-center justify-between p-2 sm:p-6 bg-gradient-to-br from-[#eed953]/20 via-white to-[#eed953]/20 rounded-2xl md:rounded-[2rem] border border-transparent hover:border-[#b5820e]/20 transition-all gap-4 shadow-sm w-full",children:[(0,o.jsxs)("div",{onClick:m,className:"flex flex-col md:flex-row items-start md:items-center gap-4 md:gap-6 w-full",children:[(0,o.jsxs)("div",{className:"flex flex-col-2 gap-5 md:flex-col items-center justify-center text-[#b5820e] flex-shrink-0",children:[o.jsx("span",{className:"text-[12px] sm:text-[12px] font-bold uppercase opacity-70",children:"Hora"}),o.jsx("span",{className:"text-xl sm:text-2xl font-extrabold",children:d}),o.jsx("span",{className:"text-[10px] sm:text-[12px] text-gray-800 mt-1",children:new Date(l).toLocaleDateString("pt-PT",{day:"2-digit",month:"short",year:"numeric"})})]}),(0,o.jsxs)("div",{className:`flex-1 p-3 sm:p-4 rounded-xl transition-all duration-300 ${u?"cursor-pointer ":"cursor-default"}`,onClick:u?x:void 0,children:[(0,o.jsxs)("div",{className:"flex items-center gap-2 sm:gap-3 mb-1",children:[o.jsx(a.Z,{size:20,className:"text-[#b5820e]"}),o.jsx("span",{className:"text-sm sm:text-lg font-bold text-black",children:y})]}),o.jsx("div",{className:"flex items-center gap-2 mb-1",children:(0,o.jsxs)("span",{className:"text-[10px] sm:text-xs text-gray-500 font-medium",children:["\uD83D\uDCDE ",b]})}),(0,o.jsxs)("div",{className:"flex items-center gap-1 mb-1 flex-wrap",children:[o.jsx("span",{className:"text-[11px] sm:text-sm font-semibold text-gray-800",children:v}),r&&o.jsx("span",{className:"text-[10px] sm:text-xs text-gray-500 italic ml-2",children:r})]}),p&&o.jsx("p",{className:"text-[10px] text-blue-500 mt-2 italic",children:p})]}),o.jsx("span",{className:`text-[10px] uppercase font-bold px-2 sm:px-3 py-1 rounded-full ${function(e){switch(e){case"confirmado":return"bg-green-100 text-green-700";case"pendente":return"bg-yellow-100 text-yellow-700";case"cancelado":return"bg-red-100 text-red-700";case"reagendado":return"bg-blue-100 text-blue-700";case"concluido":return"bg-purple-100 text-purple-700";default:return"bg-gray-100 text-gray-700"}}(c)}`,children:R})]}),(0,o.jsxs)("div",{className:"flex gap-2 w-full md:w-auto justify-end mt-2 md:mt-0",children:[(0,o.jsxs)("button",{disabled:!g,onClick:g?f:void 0,className:`flex-1 md:flex-none px-3 sm:px-4 py-2 rounded-lg border font-bold text-[10px] uppercase flex items-center justify-center gap-1 sm:gap-2 transition-all
+            ${g?"bg-white text-black hover:text-[#b5820e]":"bg-gray-100 text-gray-400 cursor-not-allowed"}
+          `,children:[o.jsx(s.Z,{size:12})," Remarcar"]}),o.jsx("button",{disabled:!g,onClick:g?h:void 0,className:`p-2 sm:p-3 rounded-lg border transition-all
+            ${g?"bg-white text-red-400 hover:text-red-600":"bg-gray-100 text-gray-300 cursor-not-allowed"}
+          `,children:o.jsx(n,{size:18})})]})]})}},4279:(e,t,r)=>{r.a(e,async(e,o)=>{try{r.d(t,{Z:()=>l});var a=r(9648),s=e([a]);let n=(a=(s.then?(await s)():s)[0]).default.create({baseURL:"http://localhost:3333",headers:{"Content-Type":"application/json"}});n.interceptors.request.use(e=>{let t=localStorage.getItem("token");return console.log("[API] Token encontrado:",t?"✅ Sim":"❌ N\xe3o"),t&&t.trim()?"undefined"===t||"null"===t||""===t?(console.warn("[API] ⚠️ Token inv\xe1lido encontrado. Removendo do localStorage..."),localStorage.removeItem("token")):(e.headers.Authorization=`Bearer ${t}`,console.log("[API] ✅ Token adicionado ao header"),console.log("[API] Token preview:",t.substring(0,20)+"...")):console.warn("[API] ⚠️ Nenhum token encontrado no localStorage"),console.log(`[API] ${e.method?.toUpperCase()} ${e.baseURL}${e.url}`),e}),n.interceptors.response.use(e=>e,e=>{if(e.response){console.error(`[API ERROR] Status: ${e.response.status}`),console.error(`[API ERROR] URL: ${e.config?.url}`),console.error(`[API ERROR] Message: ${e.message}`);try{console.error("[API ERROR] Response data:",e.response.data)}catch(e){console.error("[API ERROR] N\xe3o foi poss\xedvel logar response.data",e)}404===e.response.status&&(console.error(`[API ERROR] Rota n\xe3o encontrada: ${e.config?.url}`),console.error("[API ERROR] Verifique se a rota existe no backend")),401===e.response.status&&(console.error(`[API ERROR] N\xe3o autorizado. Token inv\xe1lido ou expirado`),console.error("[API ERROR] Response data:",e.response.data),localStorage.removeItem("token"),window.location.href="/login")}else e.request?(console.error("[API ERROR] Nenhuma resposta do servidor"),console.error("[API ERROR] Request:",e.request)):console.error(`[API ERROR] Erro ao configurar requisi\xe7\xe3o:`,e.message);return Promise.reject(e)});let l=n;o()}catch(e){o(e)}})},5244:(e,t)=>{var r;Object.defineProperty(t,"x",{enumerable:!0,get:function(){return r}}),function(e){e.PAGES="PAGES",e.PAGES_API="PAGES_API",e.APP_PAGE="APP_PAGE",e.APP_ROUTE="APP_ROUTE"}(r||(r={}))}};

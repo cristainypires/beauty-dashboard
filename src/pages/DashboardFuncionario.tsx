@@ -21,7 +21,7 @@ import { Form_Agendamento_Funcionario } from "../components/Form_Agendamento_Fun
 import { safeArray } from "../utils/dataHelpers";
 import { PanoramaDisponibilidade } from "../components/PanoramaDisponibilidade";
 
-export function DashboardFuncionario() {
+export default function DashboardFuncionario() {
   const [view, setView] = useState<
     "home" | "agenda" | "historico" | "disponibilidade" | "novo" | "ver"
   >("home");
