@@ -1,18 +1,12 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   content: [
-    "./src/**/*.{js,jsx,ts,tsx}",
+    "./src/pages/**/*.{js,ts,jsx,tsx,mdx}", // Adicione esta linha se não tiver
+    "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
+    "./src/app/**/*.{js,ts,jsx,tsx,mdx}", // Caso use a pasta app também
   ],
   theme: {
-    extend: {
-      // Podes adicionar as cores da Maddie aqui depois
-      colors: {
-        maddie: {
-          pink: '#FFF5F7',
-          wine: '#5D2E46',
-        }
-      }
-    },
+    extend: {},
   },
   plugins: [],
 }
